@@ -34,20 +34,11 @@ import com.alcopoune.metertronik.presentation.components.MetricCard
 
 @Composable
 fun DetailsHistoryDayScreen(
+    id: String,
     modifier: Modifier = Modifier
 ) {
     DetailsCommonContent(
-        title = "History Hari Ini",
-        modifier = modifier
-    )
-}
-
-@Composable
-fun DetailsCurrentDayScreen(
-    modifier: Modifier = Modifier
-) {
-    DetailsCommonContent(
-        title = "Status Hari Ini",
+        title = "History Hari Ini (ID: $id)",
         modifier = modifier
     )
 }

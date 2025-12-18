@@ -13,6 +13,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,39 +27,45 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavHostController
 import com.alcopoune.metertronik.presentation.components.MetricCard
 import com.alcopoune.metertronik.presentation.components.PrimaryCard
 import com.alcopoune.metertronik.presentation.components.chart.LineChartCustom
 import com.alcopoune.metertronik.presentation.components.chart.LinearProgressBar
 import com.alcopoune.metertronik.presentation.components.chart.PowerGaugeChart
+import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
 
 @Composable
 fun DashboardScreen(
-    onNavigateToDetailsHistoryDay: () -> Unit,
-    onNavigateToDetailsCurrentDay: () -> Unit,
-    modifier: Modifier = Modifier
+    navController: NavHostController
 ) {
     val monthlyCost = remember { "Rp 250.000" }
     val monthlyProgress = remember { 0.6f }
 
     MaterialTheme {
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            CostSummaryCard(
-                monthlyCost = monthlyCost,
-                progress = monthlyProgress,
-                onDetailsHistoryClick = onNavigateToDetailsHistoryDay,
-                onDetailsCurrentClick = onNavigateToDetailsCurrentDay
-            )
-            LineChart()
-            RealtimeCard()
-            PowerGaugeCard()
-
+        Scaffold(
+            bottomBar = {
+                MainBottomBar(navController = navController)
+            }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 16.dp)
+                    .padding(innerPadding)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                CostSummaryCard(
+                    monthlyCost = monthlyCost,
+                    progress = monthlyProgress
+                )
+                LineChart()
+                RealtimeCard()
+                PowerGaugeCard()
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
     }
 }
@@ -76,9 +83,7 @@ private fun LineChart() {
 @Composable
 fun CostSummaryCard(
     monthlyCost: String,
-    progress: Float,
-    onDetailsHistoryClick: () -> Unit,
-    onDetailsCurrentClick: () -> Unit
+    progress: Float
 ) {
     PrimaryCard {
             Text(
@@ -109,7 +114,7 @@ fun CostSummaryCard(
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
-                    onClick = onDetailsHistoryClick,
+                    onClick = {  },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
@@ -119,7 +124,7 @@ fun CostSummaryCard(
                     Text("History Hari Ini")
                 }
                 Button(
-                    onClick = onDetailsCurrentClick,
+                    onClick = { },
                     modifier = Modifier.weight(1f)
                 ) {
                     Text("Status Saat Ini")

@@ -4,7 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.alcopoune.metertronik.presentation.MainScaffold
+import com.alcopoune.metertronik.presentation.navigation.AppNavHost
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +13,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             MetertronikTheme {
-                MainScaffold()
+                AppNavHost()
             }
         }
     }

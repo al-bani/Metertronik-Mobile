@@ -26,7 +26,7 @@ fun MetricCard(
     color: Color,
 ) {
     Card(
-        modifier = modifier,
+        modifier = modifier.padding(vertical = 5.dp),
         colors = CardDefaults.cardColors(
             containerColor = color
         )
@@ -55,7 +55,7 @@ fun PrimaryCard(
     content: @Composable ColumnScope.() -> Unit
 ){
     Card(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 5.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.primary
         ),
@@ -66,7 +66,7 @@ fun PrimaryCard(
             width = 1.dp,
             color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.12f)
         ),
-        shape = MaterialTheme.shapes.medium
+        shape = MaterialTheme.shapes.medium,
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
