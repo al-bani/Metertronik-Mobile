@@ -113,7 +113,7 @@ fun ListDataScreen(
                     HistoryItemRow(
                         item = item,
                         onClick = {
-                            navController.navigate(Routes.Detail.createRoute(item.id))
+                            navController.navigate(Routes.Detail.createRoute("device-001"))
                         }
                     )
                 }

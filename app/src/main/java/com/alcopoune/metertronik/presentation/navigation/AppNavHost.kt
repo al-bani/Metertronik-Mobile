@@ -10,7 +10,7 @@ import androidx.navigation.navArgument
 import com.alcopoune.metertronik.presentation.screen.dashboard.DashboardScreen
 import com.alcopoune.metertronik.presentation.screen.list_data.ListDataScreen
 import com.alcopoune.metertronik.presentation.screen.settings.SettingsScreen
-import com.alcopoune.metertronik.presentation.screen.daily_details.DetailsScreen
+import com.alcopoune.metertronik.presentation.screen.daily_detail.DetailsScreen
 
 @Composable
 fun AppNavHost(
