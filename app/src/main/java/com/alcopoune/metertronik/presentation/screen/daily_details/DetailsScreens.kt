@@ -1,323 +1,348 @@
 package com.alcopoune.metertronik.presentation.screen.daily_details
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.horizontalScroll
+import DoubleBarChart
+import android.annotation.SuppressLint
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBackIosNew
+import androidx.compose.material.icons.filled.ElectricBolt
+import androidx.compose.material.icons.filled.Money
+import androidx.compose.material.icons.filled.Navigation
+import androidx.compose.material.icons.outlined.AccessTime
+import androidx.compose.material.icons.outlined.TipsAndUpdates
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.StrokeJoin
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.alcopoune.metertronik.presentation.components.MetricCard
+import com.alcopoune.metertronik.presentation.components.PrimaryCard
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun DetailsHistoryDayScreen(
-    id: String,
-    modifier: Modifier = Modifier
+fun DetailsScreen(
+    navController: NavController,
+    id: String
 ) {
-    DetailsCommonContent(
-        title = "History Hari Ini (ID: $id)",
-        modifier = modifier
-    )
-}
-
-@Composable
-private fun DetailsCommonContent(
-    title: String,
-    modifier: Modifier = Modifier
-) {
-    val scrollState = rememberScrollState()
-
-    Column(
-        modifier = modifier
-            .fillMaxSize()
-            .verticalScroll(scrollState)
-            .padding(16.dp),
-        verticalArrangement = Arrangement.spacedBy(16.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.Bold
-        )
-
-        CostAndHourlyHistoryCard()
-
-        ScrollableChartsSection()
-
-        DailyAverageCards()
-
-        EfficiencyProgressSection()
-
-        HourlyHistoryList()
-    }
-}
-
-@Composable
-private fun CostAndHourlyHistoryCard() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors()
-    ) {
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        "Detail: $id",
+                        maxLines = 1,
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.Default.ArrowBackIosNew, contentDescription = "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.scrim,
+                )
+            )
+        }
+    ) { innerPadding ->
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp)
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Text(
-                text = "Biaya Hari Ini",
-                style = MaterialTheme.typography.titleSmall
-            )
-            Text(
-                text = "Rp 35.000",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            Text(
-                text = "History per jam",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            DailySummary()
+            AvgCard()
+            PrimaryCard {
+                Text("Power", color = MaterialTheme.colorScheme.scrim)
+                DoubleBarChart()
+            }
+            HourlySectionScroll()
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
 @Composable
-private fun ScrollableChartsSection() {
-    val currentSeries = remember {
-        listOf(0.3f, 0.5f, 0.4f, 0.8f, 0.6f, 0.7f, 0.9f, 0.5f)
-    }
-    val voltageSeries = remember {
-        listOf(0.6f, 0.7f, 0.65f, 0.8f, 0.75f, 0.7f, 0.85f, 0.8f)
-    }
-    val powerSeries = remember {
-        listOf(0.2f, 0.4f, 0.35f, 0.6f, 0.55f, 0.7f, 0.65f, 0.5f)
-    }
-
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors()
+fun DailySummary() {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+        PrimaryCard(
+            modifier = Modifier
+                .weight(1f)
         ) {
-            Text(
-                text = "Grafik Current, Voltage, Power",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState()),
-                horizontalArrangement = Arrangement.spacedBy(24.dp)
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
             ) {
-                ChartLine(
-                    title = "Current (A)",
-                    color = MaterialTheme.colorScheme.primary,
-                    points = currentSeries
+                Icon(
+                    imageVector = Icons.Filled.Money,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.scrim,
+                    modifier = Modifier.size(48.dp)
                 )
-                ChartLine(
-                    title = "Voltage (V)",
-                    color = MaterialTheme.colorScheme.tertiary,
-                    points = voltageSeries
-                )
-                ChartLine(
-                    title = "Power (kW)",
-                    color = MaterialTheme.colorScheme.secondary,
-                    points = powerSeries
+
+                Spacer(modifier = Modifier.height(4.dp))
+
+                Text(
+                    text = "Rp 14.000",
+                    color = MaterialTheme.colorScheme.scrim
                 )
             }
         }
-    }
-}
 
-@Composable
-private fun ChartLine(
-    title: String,
-    color: Color,
-    points: List<Float>,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-            .width(220.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp)
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodySmall,
-            fontWeight = FontWeight.SemiBold
-        )
-
-        Canvas(
+        PrimaryCard(
             modifier = Modifier
-                .fillMaxWidth()
-                .height(140.dp)
+                .weight(1f)
         ) {
-            if (points.size < 2) return@Canvas
-
-            val padding = 24f
-            val width = size.width - padding * 2
-            val height = size.height - padding * 2
-            val maxValue = (points.maxOrNull() ?: 1f).coerceAtLeast(0.01f)
-            val stepX = width / (points.size - 1)
-
-            val path = Path()
-            points.forEachIndexed { index, value ->
-                val x = padding + stepX * index
-                val normalizedY = (value / maxValue).coerceIn(0f, 1f)
-                val y = padding + height * (1f - normalizedY)
-
-                if (index == 0) {
-                    path.moveTo(x, y)
-                } else {
-                    path.lineTo(x, y)
-                }
-            }
-
-            drawPath(
-                path = path,
-                color = color,
-                style = Stroke(
-                    width = 6f,
-                    cap = StrokeCap.Round,
-                    join = StrokeJoin.Round
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.Start
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.ElectricBolt,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.scrim,
+                    modifier = Modifier.size(48.dp)
                 )
-            )
 
-            points.forEachIndexed { index, value ->
-                val x = padding + stepX * index
-                val normalizedY = (value / maxValue).coerceIn(0f, 1f)
-                val y = padding + height * (1f - normalizedY)
+                Spacer(modifier = Modifier.height(4.dp))
 
-                drawCircle(
-                    color = color,
-                    radius = 8f,
-                    center = Offset(x, y)
+                Text(
+                    text = "350 kWh",
+                    color = MaterialTheme.colorScheme.scrim
                 )
+
             }
         }
     }
 }
 
 @Composable
-private fun DailyAverageCards() {
+fun AvgCard() {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-
+        MetricCard(
+            title = "Current",
+            value = "7.5 A",
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.tertiary
+        )
+        MetricCard(
+            title = "Voltage",
+            value = "221 V",
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.secondary
+        )
+        MetricCard(
+            title = "Power",
+            value = "1.4 kW",
+            modifier = Modifier.weight(1f),
+            color = MaterialTheme.colorScheme.error
+        )
     }
 }
 
+data class HourItem(
+    val hour: Int
+)
 
 @Composable
-private fun EfficiencyProgressSection() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors()
-    ) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+fun HourlySectionScroll() {
+    val hours = (0..23).map { HourItem(it) }
+
+    // DEFAULT: jam paling awal (00:00)
+    var selectedHour by remember { mutableStateOf(0) }
+
+    Column {
+        LazyRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp)
         ) {
-            Text(
-                text = "Efisiensi Listrik",
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = "75%",
-                style = MaterialTheme.typography.headlineSmall,
-                fontWeight = FontWeight.Bold
-            )
-            LinearProgressIndicator(
-                progress = { 0.75f },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-            )
+            items(hours) { item ->
+                HourCard(
+                    hour = item.hour,
+                    selectedHour = selectedHour,
+                    onClick = {
+                        selectedHour = item.hour
+                    }
+                )
+            }
         }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        HourlyAverageCard()
+        Spacer(modifier = Modifier.height(16.dp))
+        DailySummary()
+
     }
 }
 
 @Composable
-private fun HourlyHistoryList() {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors()
+private fun HourlyAverageCard() {
+    PrimaryCard(
+        modifier = Modifier.fillMaxWidth()
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+
+            // ===== TITLE =====
             Text(
-                text = "History Per Jam",
+                text = "Average Metrics from 11:00",
                 style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold
+                color = MaterialTheme.colorScheme.scrim.copy(0.7f),
+                fontWeight = FontWeight.Medium
             )
 
-            repeat(6) { index ->
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column {
-                        Text(
-                            text = "${index * 4}:00 - ${(index + 1) * 4}:00",
-                            style = MaterialTheme.typography.bodySmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Text(
-                            text = "Rata2: 7.2 A / 220 V / 1.5 kW",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        Text(
-                            text = "Biaya: Rp 6.000",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            text = "Total: 0.8 kWh",
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                    }
-                }
-
-                if (index != 5) {
-                    Spacer(modifier = Modifier.height(8.dp))
-                }
+            // ===== METRICS =====
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                MetricItem(
+                    title = "Current",
+                    value = "12 A"
+                )
+                MetricItem(
+                    title = "Power",
+                    value = "12 W"
+                )
+                MetricItem(
+                    title = "Voltage",
+                    value = "12 V"
+                )
             }
+
+
         }
     }
 }
 
+@Composable
+private fun MetricItem(
+    title: String,
+    value: String,
+    icon: ImageVector = Icons.Outlined.TipsAndUpdates
+) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(6.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.scrim,
+                    modifier = Modifier.size(18.dp)
+                )
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.scrim.copy(0.7f),
+                    fontWeight = FontWeight.Bold
+                )
+            }
+
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.scrim.copy(0.7f),
+                fontWeight = FontWeight.Medium
+            )
+        }
+}
+
+
+
+@SuppressLint("DefaultLocale")
+@Composable
+fun HourCard(
+    hour: Int,
+    selectedHour: Int,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isSelected = selectedHour == hour
+
+    Card(
+        modifier = modifier
+            .width(72.dp)
+            .height(90.dp)
+            .clickable { onClick() },
+        shape = RoundedCornerShape(12.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected)
+                MaterialTheme.colorScheme.primary
+            else
+                MaterialTheme.colorScheme.surface
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = if (isSelected) 6.dp else 2.dp
+        )
+    ) {
+        Column(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.AccessTime,
+                contentDescription = null,
+                tint = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimary
+                else
+                    MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(22.dp)
+            )
+
+            Spacer(modifier = Modifier.height(6.dp))
+
+            Text(
+                text = String.format("%02d:00", hour),
+                fontWeight = FontWeight.Medium,
+                color = if (isSelected)
+                    MaterialTheme.colorScheme.onPrimary
+                else
+                    MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
 

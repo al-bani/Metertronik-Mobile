@@ -8,9 +8,9 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.alcopoune.metertronik.presentation.screen.dashboard.DashboardScreen
-import com.alcopoune.metertronik.presentation.screen.daily_details.DetailsHistoryDayScreen
 import com.alcopoune.metertronik.presentation.screen.list_data.ListDataScreen
 import com.alcopoune.metertronik.presentation.screen.settings.SettingsScreen
+import com.alcopoune.metertronik.presentation.screen.daily_details.DetailsScreen
 
 @Composable
 fun AppNavHost(
@@ -24,11 +24,11 @@ fun AppNavHost(
             DashboardScreen(navController = navController)
         }
 
-        composable(route = Routes.ListData.route) {
+        composable(Routes.ListData.route) {
             ListDataScreen(navController = navController)
         }
 
-        composable(route = Routes.Setting.route) {
+        composable(Routes.Setting.route) {
             SettingsScreen(navController = navController)
         }
 
@@ -41,7 +41,7 @@ fun AppNavHost(
             )
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString(Routes.Detail.ARG_ID).orEmpty()
-            DetailsHistoryDayScreen(id = id)
+            DetailsScreen(navController = navController, id = id)
         }
     }
 }
