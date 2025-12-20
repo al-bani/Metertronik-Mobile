@@ -4,6 +4,7 @@ import android.R.attr.onClick
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -73,7 +74,8 @@ fun ListDataScreen(
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.Center
             ) {
                 OutlinedTextField(
                     value = searchQuery,
@@ -82,8 +84,8 @@ fun ListDataScreen(
                     modifier = Modifier
                         .weight(1f)
                         .heightIn(min = 40.dp, max = 48.dp),
-                    label = { Text("Cari history") },
-                    trailingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+                    label = { Text("Search by Range Data") },
+                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.White,

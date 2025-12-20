@@ -1,7 +1,11 @@
 package com.alcopoune.metertronik.di
 
 import com.alcopoune.metertronik.data.remote.DailyDetailsApi
+import com.alcopoune.metertronik.data.remote.WebSocketService
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
+import com.alcopoune.metertronik.data.repository.RealtimeRepository
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -17,6 +21,15 @@ import javax.inject.Singleton
 object AppModule {
 
     private const val BASE_URL = "http://192.168.1.3:8080/v1/api/"
+    private const val WEBSOCKET_BASE_URL = "ws://192.168.1.3:8080/v1/ws/electricity/"
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson {
+        return GsonBuilder()
+            .setLenient()
+            .create()
+    }
 
     @Provides
     @Singleton
@@ -36,12 +49,13 @@ object AppModule {
     @Provides
     @Singleton
     fun provideRetrofit(
-        client: OkHttpClient
+        client: OkHttpClient,
+        gson: Gson
     ): Retrofit {
         return Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(client)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
@@ -59,5 +73,29 @@ object AppModule {
         api: DailyDetailsApi
     ): DailyDetailsRepository {
         return DailyDetailsRepository(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideWebSocketBaseUrl(): String {
+        return WEBSOCKET_BASE_URL
+    }
+
+    @Provides
+    @Singleton
+    fun provideWebSocketService(
+        okHttpClient: OkHttpClient,
+        gson: Gson,
+        webSocketBaseUrl: String
+    ): WebSocketService {
+        return WebSocketService(okHttpClient, gson, webSocketBaseUrl)
+    }
+
+    @Provides
+    @Singleton
+    fun provideRealtimeRepository(
+        webSocketService: WebSocketService
+    ): RealtimeRepository {
+        return RealtimeRepository(webSocketService)
     }
 }
