@@ -9,9 +9,11 @@ private val AppColorScheme = lightColorScheme(
     error = Red,
     surface = Green,
     tertiary = Orange,
-    secondary = Blue,
+    secondary = Purple,
     background = Gray,
-    scrim = Black
+    scrim = Black,
+    onSecondary = Blue,
+    onTertiary = Yellow
 )
 
 @Composable
