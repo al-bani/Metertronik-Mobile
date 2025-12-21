@@ -1,8 +1,10 @@
 package com.alcopoune.metertronik.di
 
 import com.alcopoune.metertronik.data.remote.DailyDetailsApi
+import com.alcopoune.metertronik.data.remote.DashboardApi
 import com.alcopoune.metertronik.data.remote.WebSocketService
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
+import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -20,8 +22,8 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val BASE_URL = "http://192.168.1.3:8080/v1/api/"
-    private const val WEBSOCKET_BASE_URL = "ws://192.168.1.3:8080/v1/ws/electricity/"
+    private const val BASE_URL = "http://192.168.1.4:8080/v1/api/"
+    private const val WEBSOCKET_BASE_URL = "ws://192.168.1.4:8080/v1/ws/electricity/"
 
     @Provides
     @Singleton
@@ -73,6 +75,22 @@ object AppModule {
         api: DailyDetailsApi
     ): DailyDetailsRepository {
         return DailyDetailsRepository(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDashboardApi(
+        retrofit: Retrofit
+    ): DashboardApi {
+        return  retrofit.create(DashboardApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideDashboardRepository(
+        api: DashboardApi
+    ) : DashboardRepository {
+        return DashboardRepository(api)
     }
 
     @Provides

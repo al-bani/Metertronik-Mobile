@@ -1,11 +1,14 @@
 package com.alcopoune.metertronik.data.mapper
 
 import com.alcopoune.metertronik.data.remote.dto.DailyDetailResponse
+import com.alcopoune.metertronik.data.remote.dto.DashboardResponse
 import com.alcopoune.metertronik.data.remote.dto.ElectricityRealtimeDto
 import com.alcopoune.metertronik.domain.model.DailyData
 import com.alcopoune.metertronik.domain.model.DailyDetailsData
+import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
 import com.alcopoune.metertronik.domain.model.HourlyData
+import com.alcopoune.metertronik.domain.model.MonthlyData
 
 fun DailyDetailResponse.toDomain(): DailyDetailsData{
     return DailyDetailsData(
@@ -49,5 +52,37 @@ fun ElectricityRealtimeDto.toDomain(): ElectricityRealtime {
         powerSurge = powerSurge,
         powerSurgePercentage = powerSurgePercentage,
         createdAt = createdAt
+    )
+}
+
+fun DashboardResponse.toDomain(): DashboardSummaryData {
+    return DashboardSummaryData(
+        daily = data.daily.map{
+            DailyData(
+                deviceId = it.deviceId,
+                energy = it.energy,
+                totalCost = it.totalCost,
+                avgVoltage = it.avgVoltage,
+                avgCurrent = it.avgCurrent,
+                avgPower = it.avgPower,
+                minPower = it.minPower,
+                maxPower = it.maxPower,
+                day = it.day
+            )
+        },
+        monthly = MonthlyData(
+            deviceId = data.month.deviceId,
+            energy = data.month.energy,
+            totalCost = data.month.totalCost,
+            month = data.month.month
+        ),
+        monthlyList = data.monthly.map {
+            MonthlyData(
+                deviceId = it.deviceId,
+                energy = it.energy,
+                totalCost = it.totalCost,
+                month = it.month
+            )
+        }
     )
 }

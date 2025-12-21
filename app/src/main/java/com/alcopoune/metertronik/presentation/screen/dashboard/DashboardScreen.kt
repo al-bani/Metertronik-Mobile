@@ -63,63 +63,88 @@ fun DashboardScreen(
     navController: NavHostController,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
-    val uiState by viewModel.uiState.collectAsState()
+    val dashboardState by viewModel.uiState.collectAsState()
+    val realtimeData by viewModel.realtimeData.collectAsState()
+    val isConnected by viewModel.isConnected.collectAsState()
 
-    val monthlyCost = remember { "Rp 250.000" }
-    val monthlyProgress = remember { 0.6f }
-
-    LaunchedEffect(Unit) {
+    LaunchedEffect(key1 = true) {
         viewModel.connectWebSocket("device-001")
+        viewModel.loadDashboardData(
+            deviceId = "device-001",
+            date = "2025-12-11"
+        )
     }
 
-    MaterialTheme {
-        Scaffold(
-            bottomBar = {
-                MainBottomBar(navController = navController)
-            }
-        ) { innerPadding ->
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding)
-                    .padding(horizontal = 16.dp)
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Spacer(modifier = Modifier.height(16.dp))
+    Scaffold(
+        bottomBar = {
+            MainBottomBar(navController = navController)
+        }
+    ) { innerPadding ->
 
-                CostSummaryCard(
-                    monthlyCost = monthlyCost,
-                    progress = monthlyProgress
-                )
-                LineChart()
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 6.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(
-                        text = "Real Time Data",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.scrim
-                    )
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding)
+                .padding(horizontal = 16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            when (dashboardState) {
+                is DashboardState.Loading -> {
                     LoadingDots()
                 }
-                RealtimeCard(
-                    realtimeData = uiState.realtimeData
-                )
-                PowerGaugeCard(
-                    realtimeData = uiState.realtimeData
+
+                is DashboardState.Error -> {
+                    Text(
+                        text = (dashboardState as DashboardState.Error).message,
+                        color = MaterialTheme.colorScheme.error
+                    )
+                }
+
+                is DashboardState.Success -> {
+                    val data =
+                        (dashboardState as DashboardState.Success).data
+
+                    CostSummaryCard(
+                        monthlyCost = data.monthly.totalCost.toString(),
+                        progress = 1000f
+                    )
+
+                    LineChart()
+                }
+            }
+
+            // ========================
+            // Realtime Section
+            // ========================
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Real Time Data",
+                    style = MaterialTheme.typography.titleLarge
                 )
 
-                EfficiencyElectric()
-                Spacer(modifier = Modifier.height(16.dp))
+                if (isConnected) {
+                    LoadingDots()
+                }
             }
+
+            RealtimeCard(realtimeData = realtimeData)
+            PowerGaugeCard(realtimeData = realtimeData)
+
+            EfficiencyElectric()
+
+            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
+
 
 @Composable
 fun EfficiencyElectric() {
