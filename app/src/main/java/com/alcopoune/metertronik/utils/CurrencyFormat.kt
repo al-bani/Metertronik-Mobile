@@ -2,7 +2,7 @@ package com.alcopoune.metertronik.utils
 import java.text.NumberFormat
 import java.util.Locale
 
-fun formatRupiah(value: Number): String {
+fun formatRupiah(value: Double): String {
     val localeID = Locale("in", "ID")
     val formatter = NumberFormat.getCurrencyInstance(localeID)
     formatter.maximumFractionDigits = 0

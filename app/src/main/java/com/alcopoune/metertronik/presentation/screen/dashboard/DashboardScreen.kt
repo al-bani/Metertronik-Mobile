@@ -1,13 +1,13 @@
 package com.alcopoune.metertronik.presentation.screen.dashboard
 
-import androidx.compose.foundation.background
+import android.annotation.SuppressLint
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -15,10 +15,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Money
+import androidx.compose.material.icons.filled.ElectricBolt
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Timelapse
 import androidx.compose.material.icons.outlined.Download
@@ -28,44 +27,45 @@ import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Tab
-import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
+import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
 import com.alcopoune.metertronik.presentation.components.LoadingDots
-import com.alcopoune.metertronik.presentation.components.MetricCard
-import com.alcopoune.metertronik.presentation.components.PrimaryCard
+import com.alcopoune.metertronik.presentation.components.card.MetricCard
+import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
 import com.alcopoune.metertronik.presentation.components.chart.LineChartCustom
 import com.alcopoune.metertronik.presentation.components.chart.LinearProgressBar
 import com.alcopoune.metertronik.presentation.components.chart.PowerGaugeChart
 import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
-import com.alcopoune.metertronik.presentation.theme.Orange
+import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
+import com.alcopoune.metertronik.utils.RealtimePulse
+import com.alcopoune.metertronik.utils.daysBeforeEndOfMonth
+import com.alcopoune.metertronik.utils.formatDailyLabel
+import com.alcopoune.metertronik.utils.formatMonthlyLabel
+import com.alcopoune.metertronik.utils.formatRupiah
+import com.alcopoune.metertronik.utils.progressToEndOfMonth
+import java.util.Locale
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun DashboardScreen(
     navController: NavHostController,
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val dashboardState by viewModel.uiState.collectAsState()
-    val realtimeData by viewModel.realtimeData.collectAsState()
-    val isConnected by viewModel.isConnected.collectAsState()
 
     LaunchedEffect(key1 = true) {
         viewModel.connectWebSocket("device-001")
@@ -75,12 +75,28 @@ fun DashboardScreen(
         )
     }
 
+    // Tampilkan ErrorScreen sebagai screen penuh jika terjadi error
+    if (dashboardState is DashboardState.Error) {
+        ErrorScreen(
+            errorMessage = (dashboardState as DashboardState.Error).message,
+            onRetry = {
+                viewModel.loadDashboardData(
+                    deviceId = "device-001",
+                    date = "2025-12-11"
+                )
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+        return
+    }
+
     Scaffold(
         bottomBar = {
             MainBottomBar(navController = navController)
         }
     ) { innerPadding ->
-
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -89,7 +105,6 @@ fun DashboardScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-
             Spacer(modifier = Modifier.height(16.dp))
 
             when (dashboardState) {
@@ -97,64 +112,90 @@ fun DashboardScreen(
                     LoadingDots()
                 }
 
-                is DashboardState.Error -> {
-                    Text(
-                        text = (dashboardState as DashboardState.Error).message,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-
                 is DashboardState.Success -> {
-                    val data =
-                        (dashboardState as DashboardState.Success).data
+                    val data = (dashboardState as DashboardState.Success).data
 
                     CostSummaryCard(
-                        monthlyCost = data.monthly.totalCost.toString(),
-                        progress = 1000f
+                        monthlyCost = data.monthly.totalCost
                     )
 
-                    LineChart()
+                    LineChart(data)
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Real Time Data",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+
+                        if (dashboardState.isRealtimeConnected) {
+                            LoadingDots()
+                        }
+                    }
+
+                    RealtimeCard(realtimeData = dashboardState.realtimeData)
+                    PowerGaugeCard(realtimeData = dashboardState.realtimeData)
+
+                    EfficiencyElectric(dashboardState.realtimeData?.powerFactor?.toFloat() ?: 0f)
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                is DashboardState.Error -> {
+                    // Error state sudah ditangani di atas dengan early return
                 }
             }
 
-            // ========================
-            // Realtime Section
-            // ========================
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Real Time Data",
-                    style = MaterialTheme.typography.titleLarge
-                )
-
-                if (isConnected) {
-                    LoadingDots()
-                }
-            }
-
-            RealtimeCard(realtimeData = realtimeData)
-            PowerGaugeCard(realtimeData = realtimeData)
-
-            EfficiencyElectric()
-
-            Spacer(modifier = Modifier.height(16.dp))
         }
     }
 }
 
-
 @Composable
-fun EfficiencyElectric() {
+fun EfficiencyElectric(
+    progress: Float
+) {
+    val barColors = when {
+        progress < 0.5f -> {
+            listOf(
+                MaterialTheme.colorScheme.error
+            )
+        }
+
+        progress < 0.7f -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        progress < 0.85f -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.onTertiary
+            )
+        }
+
+        else -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.onTertiary,
+                MaterialTheme.colorScheme.surface
+            )
+        }
+    }
+
     PrimaryCard(modifier = Modifier.fillMaxWidth()) {
         Text(
             text = "Efficiency Electricity Rate",
             style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.scrim
+            color = MaterialTheme.colorScheme.scrim.copy(0.8f)
         )
+
         Spacer(modifier = Modifier.height(14.dp))
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween
@@ -170,14 +211,16 @@ fun EfficiencyElectric() {
                 color = MaterialTheme.colorScheme.surface
             )
         }
-        LinearProgressBar(
-            progress = 0.7f,
-            barColors = listOf(
-                MaterialTheme.colorScheme.error,
-                MaterialTheme.colorScheme.onTertiary,
-                MaterialTheme.colorScheme.surface,
-                )
-        )
+
+        RealtimePulse {
+            LinearProgressBar(
+                progress = progress,
+                barColors = barColors
+            )
+        }
+
+
+
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.End
@@ -191,14 +234,26 @@ fun EfficiencyElectric() {
     }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
-private fun LineChart() {
+private fun LineChart(
+    data: DashboardSummaryData
+) {
+    val dailyDataPoints = remember(data) {
+        data.daily.map { it.totalCost.toFloat() }
+    }
 
-    val dailyDataPoints = listOf(10f, 50f, 20f, 80f, 40f, 90f, 30f)
-    val dailyLabels = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val dailyLabels = remember(data) {
+        data.daily.map { formatDailyLabel(it.day) }
+    }
 
-    val monthlyDataPoints = listOf(120f, 150f, 180f, 200f, 160f, 190f, 170f, 210f, 230f, 200f, 180f, 220f)
-    val monthlyLabels = listOf("Jan", "Feb", "Mar", "Apr", "Mei", "Jun", "Jul", "Agu", "Sep", "Okt", "Nov", "Des")
+    val monthlyDataPoints = remember(data) {
+        data.monthlyList.map { it.totalCost.toFloat() }
+    }
+
+    val monthlyLabels = remember(data) {
+        data.monthlyList.map { formatMonthlyLabel(it.month) }
+    }
 
     var isDaily by remember { mutableStateOf(true) }
 
@@ -223,8 +278,8 @@ private fun LineChart() {
             }
             Spacer(modifier = Modifier.height(8.dp))
             LineChartCustom(
-                data = dailyDataPoints,
-                labels = dailyLabels
+                data = if (isDaily) dailyDataPoints else monthlyDataPoints,
+                labels = if (isDaily) dailyLabels else monthlyLabels
             )
         }
     }
@@ -240,7 +295,7 @@ fun DailyMonthlyTextSwitch(
     val unselectedColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
 
     Row(
-        modifier = modifier,
+        modifier = modifier
     ) {
         Text(
             text = "Daily",
@@ -264,11 +319,10 @@ fun DailyMonthlyTextSwitch(
     }
 }
 
-
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CostSummaryCard(
-    monthlyCost: String,
-    progress: Float
+    monthlyCost: Double
 ) {
     PrimaryCard {
         Text(
@@ -280,14 +334,14 @@ fun CostSummaryCard(
             verticalAlignment = Alignment.Top
         ) {
             Text(
-                text = monthlyCost,
+                text = formatRupiah(monthlyCost),
                 style = MaterialTheme.typography.headlineLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.scrim
             )
             Spacer(modifier = Modifier.width(4.dp))
             Icon(
-                imageVector = Icons.Default.Money,
+                imageVector = Icons.Default.ElectricBolt,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.surface,
                 modifier = Modifier.size(16.dp)
@@ -307,13 +361,13 @@ fun CostSummaryCard(
             )
             Spacer(modifier = Modifier.width(4.dp))
             Text(
-                text = "27 days before 30 days",
+                text = daysBeforeEndOfMonth(),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.scrim.copy(alpha = 0.9f)
             )
         }
 
-        LinearProgressBar(progress)
+        LinearProgressBar(progressToEndOfMonth())
 
         Spacer(modifier = Modifier.height(8.dp))
 
@@ -344,7 +398,7 @@ fun CostSummaryCard(
                 modifier = Modifier.weight(1f),
                 onClick = {},
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.onSecondary,
+                    containerColor = MaterialTheme.colorScheme.secondary,
                     contentColor = MaterialTheme.colorScheme.primary
                 )
             ) {
@@ -364,6 +418,7 @@ fun CostSummaryCard(
     }
 }
 
+@SuppressLint("DefaultLocale")
 @Composable
 fun RealtimeCard(
     realtimeData: ElectricityRealtime?
@@ -388,46 +443,81 @@ fun RealtimeCard(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        MetricCard(
-            title = "Current",
-            value = "$current A",
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.tertiary
-        )
+        RealtimePulse(
+            modifier = Modifier.weight(1f)
+        ) {
+            MetricCard(
+                title = "Current",
+                value = "$current A",
+                color = MaterialTheme.colorScheme.tertiary,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        MetricCard(
-            title = "Voltage",
-            value = "$voltage V",
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.secondary
-        )
+        RealtimePulse(
+            modifier = Modifier.weight(1f)
+        ) {
+            MetricCard(
+                title = "Voltage",
+                value = "$voltage V",
+                color = MaterialTheme.colorScheme.secondary,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
 
-        MetricCard(
-            title = "Power",
-            value = power,
-            modifier = Modifier.weight(1f),
-            color = MaterialTheme.colorScheme.error
-        )
+        RealtimePulse(
+            modifier = Modifier.weight(1f)
+        ) {
+            MetricCard(
+                title = "Power",
+                value = power,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
+
 }
 
 @Composable
 fun PowerGaugeCard(
     realtimeData: ElectricityRealtime?
 ) {
-    val power = realtimeData?.power?.toFloat() ?: 0f
+    val surgeWatt: Double = realtimeData?.powerSurge ?: 0.0
+    val surgePercent: Double = realtimeData?.powerSurgePercentage ?: 0.0
+
+    val indicator: Float = when {
+        surgeWatt > 500.0 || surgePercent > 30.0 -> 875f
+        surgeWatt > 200.0 || surgePercent > 15.0 -> 625f
+        surgeWatt > 50.0 || surgePercent > 5.0 -> 375f
+        surgeWatt == 0.0 || surgePercent == 0.0 -> 0f
+        else -> 125f
+    }
 
     PrimaryCard {
         Column(
-            modifier = Modifier
-                .fillMaxWidth()
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Text(
-                text = "Power Surge Indicator",
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.scrim.copy(0.7f)
-            )
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Power Surge Indicator",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.scrim.copy(0.7f)
+                )
+
+                RealtimePulse {
+                    Text(
+                        text = "${String.format(Locale.US, "%.1f", surgePercent)}%+",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.surface
+                    )
+                }
+            }
 
             Spacer(modifier = Modifier.height(32.dp))
 
@@ -437,7 +527,7 @@ fun PowerGaugeCard(
                     .padding(horizontal = 24.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                PowerGaugeChart(power = power)
+                PowerGaugeChart(power = indicator)
 
                 Spacer(modifier = Modifier.height(24.dp))
 
@@ -451,11 +541,16 @@ fun PowerGaugeCard(
                         style = MaterialTheme.typography.titleSmall,
                         color = MaterialTheme.colorScheme.surface
                     )
-                    Text(
-                        text = "${power.toInt()} W",
-                        style = MaterialTheme.typography.headlineMedium,
-                        color = MaterialTheme.colorScheme.scrim
-                    )
+
+                    RealtimePulse {
+                        Text(
+                            text = "${surgeWatt.toInt()} W",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = MaterialTheme.colorScheme.scrim.copy(0.8f),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Text(
                         text = "Danger",
                         style = MaterialTheme.typography.titleSmall,

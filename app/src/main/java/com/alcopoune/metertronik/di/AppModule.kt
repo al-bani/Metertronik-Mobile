@@ -1,8 +1,8 @@
 package com.alcopoune.metertronik.di
 
-import com.alcopoune.metertronik.data.remote.DailyDetailsApi
-import com.alcopoune.metertronik.data.remote.DashboardApi
-import com.alcopoune.metertronik.data.remote.WebSocketService
+import com.alcopoune.metertronik.data.remote.api.DailyDetailsApi
+import com.alcopoune.metertronik.data.remote.api.DashboardApi
+import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
 import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository

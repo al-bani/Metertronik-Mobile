@@ -1,6 +1,6 @@
 package com.alcopoune.metertronik.data.repository
 
-import com.alcopoune.metertronik.data.remote.WebSocketService
+import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
 import kotlinx.coroutines.flow.Flow
 import javax.inject.Inject
@@ -16,4 +16,3 @@ class RealtimeRepository @Inject constructor(
         webSocketService.disconnect()
     }
 }
-

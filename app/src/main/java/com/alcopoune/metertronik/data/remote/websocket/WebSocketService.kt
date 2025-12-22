@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.data.remote
+package com.alcopoune.metertronik.data.remote.websocket
 
 import android.util.Log
 import com.alcopoune.metertronik.data.mapper.toDomain
@@ -77,3 +77,4 @@ class WebSocketService @Inject constructor(
         webSocket = null
     }
 }
+

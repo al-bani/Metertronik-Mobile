@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
+import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,13 +21,32 @@ class DashboardViewModel @Inject constructor(
     private val realtimeRepository: RealtimeRepository,
     private val dashboardRepository: DashboardRepository
 ) : ViewModel() {
-    private val _uiState = MutableStateFlow<DashboardState>(DashboardState.Loading)
+    private val _uiState = MutableStateFlow<DashboardState>(DashboardState.Loading())
     val uiState: StateFlow<DashboardState> = _uiState
-    private val _realtimeData = MutableStateFlow<ElectricityRealtime?>(null)
-    val realtimeData: StateFlow<ElectricityRealtime?> = _realtimeData
 
-    private val _isConnected = MutableStateFlow(false)
-    val isConnected: StateFlow<Boolean> = _isConnected
+    private fun updateState(
+        dashboardData: DashboardSummaryData? = null,
+        realtimeData: ElectricityRealtime? = null,
+        isRealtimeConnected: Boolean = false,
+        errorMessage: String? = null
+    ) {
+        _uiState.value = when {
+            errorMessage != null -> DashboardState.Error(
+                message = errorMessage,
+                realtimeData = realtimeData,
+                isRealtimeConnected = isRealtimeConnected
+            )
+            dashboardData != null -> DashboardState.Success(
+                data = dashboardData,
+                realtimeData = realtimeData,
+                isRealtimeConnected = isRealtimeConnected
+            )
+            else -> DashboardState.Loading(
+                realtimeData = realtimeData,
+                isRealtimeConnected = isRealtimeConnected
+            )
+        }
+    }
 
     fun connectWebSocket(deviceId: String) {
         Log.d("DashboardVM", "Connecting WebSocket: $deviceId")
@@ -34,12 +54,25 @@ class DashboardViewModel @Inject constructor(
         realtimeRepository.getRealtimeData(deviceId)
             .onEach { data ->
                 Log.d("DashboardVM", "Realtime received: $data")
-                _realtimeData.value = data
-                _isConnected.value = true
+                val currentState = _uiState.value
+                updateState(
+                    dashboardData = (currentState as? DashboardState.Success)?.data,
+                    realtimeData = data,
+                    isRealtimeConnected = true,
+                    errorMessage = (currentState as? DashboardState.Error)?.message
+                )
             }
             .catch { e ->
                 Log.e("DashboardVM", "WebSocket error", e)
-                _isConnected.value = false
+                val currentState = _uiState.value
+                updateState(
+                    dashboardData = (currentState as? DashboardState.Success)?.data,
+                    realtimeData = (currentState as? DashboardState.Success)?.realtimeData
+                        ?: (currentState as? DashboardState.Error)?.realtimeData
+                        ?: (currentState as? DashboardState.Loading)?.realtimeData,
+                    isRealtimeConnected = false,
+                    errorMessage = (currentState as? DashboardState.Error)?.message
+                )
             }
             .launchIn(viewModelScope)
     }
@@ -47,7 +80,15 @@ class DashboardViewModel @Inject constructor(
     fun disconnectWebSocket() {
         Log.d("DashboardVM", "Disconnect WebSocket")
         realtimeRepository.disconnect()
-        _isConnected.value = false
+        val currentState = _uiState.value
+        updateState(
+            dashboardData = (currentState as? DashboardState.Success)?.data,
+            realtimeData = (currentState as? DashboardState.Success)?.realtimeData
+                ?: (currentState as? DashboardState.Error)?.realtimeData
+                ?: (currentState as? DashboardState.Loading)?.realtimeData,
+            isRealtimeConnected = false,
+            errorMessage = (currentState as? DashboardState.Error)?.message
+        )
     }
 
     fun loadDashboardData(
@@ -56,15 +97,39 @@ class DashboardViewModel @Inject constructor(
     ) {
         viewModelScope.launch {
             Log.d("DashboardVM", "Load dashboard: device=$deviceId date=$date")
-            _uiState.value = DashboardState.Loading
+            val currentState = _uiState.value
+            updateState(
+                realtimeData = (currentState as? DashboardState.Success)?.realtimeData
+                    ?: (currentState as? DashboardState.Error)?.realtimeData
+                    ?: (currentState as? DashboardState.Loading)?.realtimeData,
+                isRealtimeConnected = (currentState as? DashboardState.Success)?.isRealtimeConnected
+                    ?: (currentState as? DashboardState.Error)?.isRealtimeConnected
+                    ?: (currentState as? DashboardState.Loading)?.isRealtimeConnected ?: false
+            )
 
             try {
                 val result = dashboardRepository.getDashboard(deviceId, date)
-                _uiState.value = DashboardState.Success(result)
+                val updatedState = _uiState.value
+                updateState(
+                    dashboardData = result,
+                    realtimeData = (updatedState as? DashboardState.Success)?.realtimeData
+                        ?: (updatedState as? DashboardState.Error)?.realtimeData
+                        ?: (updatedState as? DashboardState.Loading)?.realtimeData,
+                    isRealtimeConnected = (updatedState as? DashboardState.Success)?.isRealtimeConnected
+                        ?: (updatedState as? DashboardState.Error)?.isRealtimeConnected
+                        ?: (updatedState as? DashboardState.Loading)?.isRealtimeConnected ?: false
+                )
             } catch (e: Exception) {
                 Log.e("DashboardVM", "Dashboard error", e)
-                _uiState.value = DashboardState.Error(
-                    e.message ?: "Unknown error"
+                val updatedState = _uiState.value
+                updateState(
+                    realtimeData = (updatedState as? DashboardState.Success)?.realtimeData
+                        ?: (updatedState as? DashboardState.Error)?.realtimeData
+                        ?: (updatedState as? DashboardState.Loading)?.realtimeData,
+                    isRealtimeConnected = (updatedState as? DashboardState.Success)?.isRealtimeConnected
+                        ?: (updatedState as? DashboardState.Error)?.isRealtimeConnected
+                        ?: (updatedState as? DashboardState.Loading)?.isRealtimeConnected ?: false,
+                    errorMessage = e.message ?: "Unknown error"
                 )
             }
         }

@@ -20,6 +20,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.alcopoune.metertronik.utils.formatRupiah
 import kotlin.math.abs
 import kotlin.math.max
 
@@ -30,6 +31,7 @@ fun LineChartCustom(
     modifier: Modifier = Modifier,
     lineColor: Color = MaterialTheme.colorScheme.secondary,
     gradientColor: Color = MaterialTheme.colorScheme.onSecondary,
+    tooltipBgColor: Color = MaterialTheme.colorScheme.scrim,
     pointColor: Color = Color.White
 ) {
     if (data.isEmpty() || data.size != labels.size) return
@@ -58,7 +60,12 @@ fun LineChartCustom(
         with(density) { 300.dp.toPx() },
         sidePadding * 2 + pointSpacing * (data.size - 1)
     )
-    /* ======================================================== */
+
+    // Auto scroll ke kanan (awal data)
+    LaunchedEffect(Unit) {
+        scrollState.scrollTo(scrollState.maxValue)
+    }
+    /* ======================================================= */
 
     Box(
         modifier = modifier
@@ -84,7 +91,8 @@ fun LineChartCustom(
                                 (size.width - sidePadding * 2) / (data.size - 1)
 
                             data.indices.forEach { i ->
-                                val x = sidePadding + spacing * i
+                                // 🔥 X DIBALIK
+                                val x = size.width - sidePadding - spacing * i
                                 val y =
                                     chartHeight - ((data[i] - min) / range) * chartHeight
 
@@ -106,8 +114,9 @@ fun LineChartCustom(
                 val min = data.minOrNull() ?: 0f
                 val range = (max - min).coerceAtLeast(1f)
 
+                // 🔥 POINT DIBALIK
                 fun point(i: Int, v: Float): Offset {
-                    val x = sidePadding + spacing * i
+                    val x = width - sidePadding - spacing * i
                     val y =
                         chartHeight - ((v - min) / range) * chartHeight
                     return Offset(x, y)
@@ -162,10 +171,10 @@ fun LineChartCustom(
                 val fillPath = Path().apply {
                     addPath(linePath)
                     lineTo(
-                        sidePadding + spacing * (data.size - 1),
+                        width - sidePadding - spacing * (data.size - 1),
                         chartHeight
                     )
-                    lineTo(sidePadding, chartHeight)
+                    lineTo(width - sidePadding, chartHeight)
                     close()
                 }
 
@@ -221,14 +230,14 @@ fun LineChartCustom(
 
                         val tooltip =
                             textMeasurer.measure(valueText, tooltipStyle)
-                        val w = tooltip.size.width + 30f
+                        val w = tooltip.size.width + 100f
                         val h = tooltip.size.height + 20f
 
                         val topLeft =
                             Offset(c.x - w / 2f, c.y - h - 16f)
 
                         drawRoundRect(
-                            color = Color(0xFF333333),
+                            color = tooltipBgColor,
                             topLeft = topLeft,
                             size = Size(w, h),
                             cornerRadius = CornerRadius(8f)
@@ -236,7 +245,7 @@ fun LineChartCustom(
 
                         drawText(
                             textMeasurer = textMeasurer,
-                            text = valueText,
+                            text = formatRupiah(valueText.toDouble()),
                             style = tooltipStyle,
                             topLeft = Offset(
                                 topLeft.x + 15f,

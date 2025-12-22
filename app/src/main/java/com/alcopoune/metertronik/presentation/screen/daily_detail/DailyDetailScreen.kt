@@ -35,8 +35,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
 import com.alcopoune.metertronik.domain.model.DailyDetailsData
 import com.alcopoune.metertronik.domain.model.HourlyData
-import com.alcopoune.metertronik.presentation.components.MetricCard
-import com.alcopoune.metertronik.presentation.components.PrimaryCard
+import com.alcopoune.metertronik.presentation.components.card.MetricCard
+import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
+import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import com.alcopoune.metertronik.utils.DecimalFormater
 import com.alcopoune.metertronik.utils.formatRupiah
 import com.alcopoune.metertronik.utils.toHour
@@ -56,6 +57,23 @@ fun DetailsScreen(
             deviceId = id,
             date = "2025-12-14"
         )
+    }
+
+    // Tampilkan ErrorScreen sebagai screen penuh jika terjadi error
+    if (state is DailyDetailState.Error) {
+        ErrorScreen(
+            errorMessage = (state as DailyDetailState.Error).message,
+            onRetry = {
+                viewModel.load(
+                    deviceId = id,
+                    date = "2025-12-14"
+                )
+            },
+            onBack = {
+                navController.popBackStack()
+            }
+        )
+        return
     }
 
     Scaffold(
@@ -98,10 +116,7 @@ fun DetailsScreen(
             }
 
             is DailyDetailState.Error -> {
-                Text(
-                    text = "Rp 14.000",
-                    color = MaterialTheme.colorScheme.scrim
-                )
+                // Error state sudah ditangani di atas dengan early return
             }
 
             is DailyDetailState.Success -> {

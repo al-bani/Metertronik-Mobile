@@ -37,6 +37,7 @@ fun LinearProgressBar(
         MaterialTheme.colorScheme.onSecondary,
         MaterialTheme.colorScheme.secondary
     ),
+    tooltipBgColor: Color = MaterialTheme.colorScheme.scrim
 ) {
     val animatedProgress by animateFloatAsState(
         targetValue = progress.coerceIn(0f, 1f),
@@ -79,13 +80,13 @@ fun LinearProgressBar(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.surface)
+                        .background(tooltipBgColor)
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
                         text = "${(progress * 100).toInt()}%",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.primary
                     )
                 }
             }

@@ -11,6 +11,9 @@ import com.alcopoune.metertronik.presentation.screen.dashboard.DashboardScreen
 import com.alcopoune.metertronik.presentation.screen.list_data.ListDataScreen
 import com.alcopoune.metertronik.presentation.screen.settings.SettingsScreen
 import com.alcopoune.metertronik.presentation.screen.daily_detail.DetailsScreen
+import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
+import java.net.URLDecoder
+import java.nio.charset.StandardCharsets
 
 @Composable
 fun AppNavHost(
@@ -42,6 +45,29 @@ fun AppNavHost(
         ) { backStackEntry ->
             val id = backStackEntry.arguments?.getString(Routes.Detail.ARG_ID).orEmpty()
             DetailsScreen(navController = navController, id = id)
+        }
+
+        composable(
+            route = Routes.Error.route,
+            arguments = listOf(
+                navArgument(Routes.Error.ARG_MESSAGE) {
+                    type = NavType.StringType
+                }
+            )
+        ) { backStackEntry ->
+            val message = backStackEntry.arguments?.getString(Routes.Error.ARG_MESSAGE)
+                ?.let { URLDecoder.decode(it, StandardCharsets.UTF_8.toString()) }
+                ?: "Terjadi kesalahan. Silakan coba lagi."
+            
+            ErrorScreen(
+                errorMessage = message,
+                onRetry = {
+                    navController.popBackStack()
+                },
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
         }
     }
 }

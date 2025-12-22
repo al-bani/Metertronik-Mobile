@@ -1,4 +1,5 @@
 package com.alcopoune.metertronik.data.remote.dto
+
 import com.google.gson.annotations.SerializedName
 
 data class DailyDto(
