@@ -2,9 +2,11 @@ package com.alcopoune.metertronik.di
 
 import com.alcopoune.metertronik.data.remote.api.DailyDetailsApi
 import com.alcopoune.metertronik.data.remote.api.DashboardApi
+import com.alcopoune.metertronik.data.remote.api.ListDataApi
 import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
 import com.alcopoune.metertronik.data.repository.DashboardRepository
+import com.alcopoune.metertronik.data.repository.ListDataRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
@@ -91,6 +93,22 @@ object AppModule {
         api: DashboardApi
     ) : DashboardRepository {
         return DashboardRepository(api)
+    }
+
+    @Provides
+    @Singleton
+    fun provideListDataApi(
+        retrofit: Retrofit
+    ): ListDataApi {
+        return  retrofit.create(ListDataApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideListDataRepository(
+        api: ListDataApi
+    ) : ListDataRepository {
+        return ListDataRepository(api)
     }
 
     @Provides

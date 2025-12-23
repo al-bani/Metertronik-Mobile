@@ -5,10 +5,10 @@ import java.nio.charset.StandardCharsets
 
 sealed class Routes(val route: String) {
     data object Dashboard : Routes("dashboard")
-    data object Detail : Routes("detail/{id}") {
-        const val ARG_ID: String = "id"
+    data object Detail : Routes("detail/{date}") {
+        const val ARG_DATE: String = "date"
 
-        fun createRoute(id: String): String = "detail/$id"
+        fun createRoute(date: String): String = "detail/$date"
     }
     data object Setting : Routes("setting")
     data object ListData : Routes("list_data")

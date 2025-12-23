@@ -1,5 +1,7 @@
 package com.alcopoune.metertronik.presentation.navigation
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
@@ -15,6 +17,7 @@ import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost(
     navController: NavHostController = rememberNavController()
@@ -38,13 +41,13 @@ fun AppNavHost(
         composable(
             route = Routes.Detail.route,
             arguments = listOf(
-                navArgument(Routes.Detail.ARG_ID) {
+                navArgument(Routes.Detail.ARG_DATE) {
                     type = NavType.StringType
                 }
             )
         ) { backStackEntry ->
-            val id = backStackEntry.arguments?.getString(Routes.Detail.ARG_ID).orEmpty()
-            DetailsScreen(navController = navController, id = id)
+            val date = backStackEntry.arguments?.getString(Routes.Detail.ARG_DATE).orEmpty()
+            DetailsScreen(navController = navController, date = date)
         }
 
         composable(

@@ -11,3 +11,4 @@ data class DailyData(
     val maxPower: Double,
     val day: String
 )
+

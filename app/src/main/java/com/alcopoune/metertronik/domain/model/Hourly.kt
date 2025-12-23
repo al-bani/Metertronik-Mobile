@@ -11,3 +11,4 @@ data class HourlyData(
     val maxPower: Double,
     val ts: String
 )
+

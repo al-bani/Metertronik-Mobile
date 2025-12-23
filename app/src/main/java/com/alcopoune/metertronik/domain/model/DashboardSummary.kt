@@ -5,3 +5,4 @@ data class DashboardSummaryData (
     val monthly: MonthlyData,
     val monthlyList : List<MonthlyData>
 )
+

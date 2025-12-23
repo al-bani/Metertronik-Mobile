@@ -121,3 +121,12 @@ fun progressToEndOfMonth(
         else -> passedDays / totalDays
     }
 }
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun formatDate(value: String): String {
+    return runCatching {
+        val date = Instant.parse(value).atZone(ZoneId.systemDefault()).toLocalDate()
+        val formatter = DateTimeFormatter.ofPattern("dd MMM yyyy", Locale.forLanguageTag("id-ID"))
+        date.format(formatter)
+    }.getOrDefault(value)
+}

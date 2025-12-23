@@ -75,7 +75,6 @@ fun DashboardScreen(
         )
     }
 
-    // Tampilkan ErrorScreen sebagai screen penuh jika terjadi error
     if (dashboardState is DashboardState.Error) {
         ErrorScreen(
             errorMessage = (dashboardState as DashboardState.Error).message,
@@ -144,95 +143,14 @@ fun DashboardScreen(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                is DashboardState.Error -> {
-                    // Error state sudah ditangani di atas dengan early return
-                }
+                else -> {}
             }
 
         }
     }
 }
 
-@Composable
-fun EfficiencyElectric(
-    progress: Float
-) {
-    val barColors = when {
-        progress < 0.5f -> {
-            listOf(
-                MaterialTheme.colorScheme.error
-            )
-        }
 
-        progress < 0.7f -> {
-            listOf(
-                MaterialTheme.colorScheme.error,
-                MaterialTheme.colorScheme.tertiary
-            )
-        }
-
-        progress < 0.85f -> {
-            listOf(
-                MaterialTheme.colorScheme.error,
-                MaterialTheme.colorScheme.onTertiary
-            )
-        }
-
-        else -> {
-            listOf(
-                MaterialTheme.colorScheme.error,
-                MaterialTheme.colorScheme.onTertiary,
-                MaterialTheme.colorScheme.surface
-            )
-        }
-    }
-
-    PrimaryCard(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = "Efficiency Electricity Rate",
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.scrim.copy(0.8f)
-        )
-
-        Spacer(modifier = Modifier.height(14.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = "0.0%",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.error
-            )
-            Text(
-                text = "100.0%",
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.surface
-            )
-        }
-
-        RealtimePulse {
-            LinearProgressBar(
-                progress = progress,
-                barColors = barColors
-            )
-        }
-
-
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.End
-        ) {
-            Text(
-                text = "Higher Value is better",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.scrim
-            )
-        }
-    }
-}
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
@@ -558,6 +476,87 @@ fun PowerGaugeCard(
                     )
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun EfficiencyElectric(
+    progress: Float
+) {
+    val barColors = when {
+        progress < 0.5f -> {
+            listOf(
+                MaterialTheme.colorScheme.error
+            )
+        }
+
+        progress < 0.7f -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.tertiary
+            )
+        }
+
+        progress < 0.85f -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.onTertiary
+            )
+        }
+
+        else -> {
+            listOf(
+                MaterialTheme.colorScheme.error,
+                MaterialTheme.colorScheme.onTertiary,
+                MaterialTheme.colorScheme.surface
+            )
+        }
+    }
+
+    PrimaryCard(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = "Efficiency Electricity Rate",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.scrim.copy(0.8f)
+        )
+
+        Spacer(modifier = Modifier.height(14.dp))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text(
+                text = "0.0%",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.error
+            )
+            Text(
+                text = "100.0%",
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.surface
+            )
+        }
+
+        RealtimePulse {
+            LinearProgressBar(
+                progress = progress,
+                barColors = barColors
+            )
+        }
+
+
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.End
+        ) {
+            Text(
+                text = "Higher Value is better",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.scrim
+            )
         }
     }
 }

@@ -1,7 +1,7 @@
 package com.alcopoune.metertronik.data.mapper
 
-import com.alcopoune.metertronik.data.remote.dto.response.DashboardResponse
 import com.alcopoune.metertronik.data.remote.dto.MonthlyDto
+import com.alcopoune.metertronik.data.remote.dto.response.DashboardResponse
 import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.MonthlyData
 

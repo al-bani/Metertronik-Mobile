@@ -36,7 +36,7 @@ import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ErrorScreen(
-    errorMessage: String = "Terjadi kesalahan. Silakan periksa koneksi internet Anda dan coba lagi.",
+    errorMessage: String = "An unexpected and unknown error has occurred while processing your request. Please try again.",
     onRetry: () -> Unit = {},
     onBack: () -> Unit = {}
 ) {
@@ -111,15 +111,4 @@ fun ErrorScreen(
             }
         }
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Preview
-@Composable
-private fun ErrorScreenPreview() {
-    ErrorScreen(
-        errorMessage = "Terjadi kesalahan. Silakan periksa koneksi internet Anda dan coba lagi.",
-        onRetry = {},
-        onBack = {}
-    )
 }

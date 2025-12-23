@@ -1,66 +1,101 @@
 package com.alcopoune.metertronik.presentation.screen.list_data
 
-import android.R.attr.onClick
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavHostController
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.alcopoune.metertronik.presentation.components.calendar.CalendarRangePicker
 import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
 import com.alcopoune.metertronik.presentation.navigation.Routes
+import com.alcopoune.metertronik.utils.RealtimePulse
+import com.alcopoune.metertronik.domain.model.DailyData
+import com.alcopoune.metertronik.domain.model.ListDataSummary
+import com.alcopoune.metertronik.utils.DecimalFormater
+import com.alcopoune.metertronik.utils.formatDate
+import com.alcopoune.metertronik.utils.formatRupiah
+import kotlinx.coroutines.flow.collectLatest
+import java.text.NumberFormat
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-data class HistoryItemUi(
-    val id: String,
-    val dateLabel: String,
-    val costLabel: String,
-    val energyLabel: String
-)
+//data class HistoryItemUi(
+//    val id: String,
+//    val deviceId: String,
+//    val dateLabel: String,
+//    val costLabel: String,
+//    val energyLabel: String
+//)
 
+@RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ListDataScreen(
-    navController: NavHostController
+    navController: NavHostController,
+    viewModel: ListDataViewModel = hiltViewModel()
 ) {
     var searchQuery by remember { mutableStateOf("") }
     var showSheet by remember { mutableStateOf(false) }
-    val sheetState = rememberModalBottomSheetState()
+    val filterSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+
+    val dateRangeSheetState = rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
     var currentSortBy by remember { mutableStateOf("Time") }
     var currentOrder by remember { mutableStateOf("ASC") }
+    var showDateRangeSheet by remember { mutableStateOf(false) }
 
-    val items = remember {
-        List(10) {
-            HistoryItemUi(
-                id = it.toString(),
-                dateLabel = "12 Des 2025",
-                costLabel = "Rp ${25_000 + it * 1000}",
-                energyLabel = "${3.0 + it * 0.1} kWh"
-            )
-        }
+    val uiState by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(Unit) {
+        viewModel.load("device-001")
     }
 
-    // Sorting logic
-    val sortedItems = remember(items, currentSortBy, currentOrder) {
-        items.sortedWith(compareBy {
-            when (currentSortBy) {
-                "Biaya" -> it.costLabel.filter { c -> c.isDigit() }.toInt()
-                "Energy" -> it.energyLabel.filter { c -> c.isDigit() || c == '.' }.toFloat()
-                else -> 0
+    LaunchedEffect(listState) {
+        snapshotFlow { listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index }
+            .collectLatest { index ->
+                val success = uiState as? ListDataState.Success
+                if (success != null && success.hasMore && index != null && index >= success.data.size - 2) {
+                    viewModel.loadMore()
+                }
             }
-        }).let { if (currentOrder == "DESC") it.reversed() else it }
     }
+
+//    val displayItems = remember(uiState) {
+//        when (uiState) {
+//            is ListDataState.Success -> (uiState as ListDataState.Success).data.map { it.toHistoryItemUi() }
+//            is ListDataState.Error -> (uiState as ListDataState.Error).cachedData.map { it.toHistoryItemUi() }
+//            else -> emptyList()
+//        }
+//    }
 
     Scaffold(
         bottomBar = { MainBottomBar(navController = navController) }
@@ -83,9 +118,18 @@ fun ListDataScreen(
                     onValueChange = { searchQuery = it },
                     modifier = Modifier
                         .weight(1f)
-                        .heightIn(min = 40.dp, max = 48.dp),
+                        .heightIn(min = 48.dp, max = 52.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(
+                                onTap = {
+                                    showDateRangeSheet = true
+                                }
+                            )
+                        },
                     label = { Text("Search by Range Data") },
-                    trailingIcon = { Icon(Icons.Default.DateRange, contentDescription = null) },
+                    trailingIcon = {
+                        Icon(Icons.Default.DateRange, contentDescription = null)
+                    },
                     shape = RoundedCornerShape(12.dp),
                     colors = TextFieldDefaults.colors(
                         focusedContainerColor = Color.White,
@@ -97,6 +141,7 @@ fun ListDataScreen(
                     ),
                     singleLine = true
                 )
+
                 IconButton(
                     onClick = { showSheet = true },
                     modifier = Modifier.padding(start = 8.dp)
@@ -105,19 +150,129 @@ fun ListDataScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+            RealtimePulse(modifier = Modifier.fillMaxWidth()){
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSecondary),
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { }
+                            .padding(14.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(18.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.ElectricBolt,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onTertiary
+                        )
 
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                items(sortedItems) { item ->
-                    HistoryItemRow(
-                        item = item,
-                        onClick = {
-                            navController.navigate(Routes.Detail.createRoute("device-001"))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Today Data",
+                                style = MaterialTheme.typography.bodyLarge,
+                                fontWeight = FontWeight.SemiBold,
+                                color = MaterialTheme.colorScheme.primary
+                            )
                         }
-                    )
+
+                        Icon(
+                            imageVector = Icons.Filled.GraphicEq,
+                            contentDescription = "More options",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            Spacer(modifier = Modifier.height(16.dp))
+            when (uiState) {
+                ListDataState.Loading -> {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                is ListDataState.Error -> {
+                    val errorState = uiState as ListDataState.Error
+                    Column(
+                        modifier = Modifier
+                            .fillMaxSize(),
+                        verticalArrangement = Arrangement.Center,
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = errorState.message,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error
+                        )
+                        Spacer(modifier = Modifier.height(12.dp))
+                        Button(onClick = { viewModel.load("device-001") }) {
+                            Text("Coba Lagi")
+                        }
+                    }
+                }
+
+                is ListDataState.Success -> {
+                    val successState = uiState as ListDataState.Success
+                    if (successState.data.isEmpty()) {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text("Tidak ada data", style = MaterialTheme.typography.titleMedium)
+                        }
+                    } else {
+
+
+                        LazyColumn(
+                            state = listState,
+                            modifier = Modifier.fillMaxSize(),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+
+
+                            itemsIndexed(
+                                items = successState.data,
+                                key = { _, item -> item.day }
+                            ) { index, item ->
+
+                                val isUp = if (index == (successState.data.size-1)) {
+                                    true
+                                } else {
+                                    val previousItem = successState.data[index + 1]
+                                    item.energy > previousItem.energy
+                                }
+
+                                HistoryItemRow(
+                                    item = item,
+                                    onClick = {
+                                        navController.navigate(Routes.Detail.createRoute(item.day))
+                                    },
+                                    isUp = isUp
+                                )
+                            }
+
+                            if (successState.isLoadingMore) {
+                                item {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .padding(vertical = 12.dp),
+                                        horizontalArrangement = Arrangement.Center
+                                    ) {
+                                        CircularProgressIndicator()
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -125,7 +280,7 @@ fun ListDataScreen(
 
     if (showSheet) {
         FilterBottomSheet(
-            sheetState = sheetState,
+            sheetState = filterSheetState,
             initialSortBy = currentSortBy,
             initialOrder = currentOrder,
             onApply = { sortBy, order ->
@@ -136,13 +291,22 @@ fun ListDataScreen(
             onDismiss = { showSheet = false }
         )
     }
+
+    if (showDateRangeSheet){
+        DateRangeSheet(
+            sheetState = dateRangeSheetState,
+            onDismiss = {showDateRangeSheet = false}
+        )
+    }
 }
 
+@RequiresApi(Build.VERSION_CODES.O)
 @Composable
 private fun HistoryItemRow(
-    item: HistoryItemUi,
+    item: DailyData,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isUp : Boolean,
 ) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primary),
@@ -158,18 +322,19 @@ private fun HistoryItemRow(
             Icon(
                 imageVector = Icons.Filled.Navigation,
                 contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                tint = if (isUp) MaterialTheme.colorScheme.surface else MaterialTheme.colorScheme.error,
+                modifier = Modifier.rotate(if (isUp) 0f else 180f).size(32.dp),
             )
 
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = item.dateLabel,
+                    text = formatDate(item.day),
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.scrim.copy(0.7f)
                 )
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = "${item.costLabel} - ${item.energyLabel}",
+                    text = "${formatRupiah(item.totalCost)} - ${DecimalFormater(item.energy)} kWh",
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.scrim
@@ -181,6 +346,68 @@ private fun HistoryItemRow(
                 contentDescription = "More options",
                 tint = MaterialTheme.colorScheme.secondary
             )
+        }
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun DateRangeSheet(
+    sheetState: SheetState,
+    onDismiss: () -> Unit
+){
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = sheetState,
+        dragHandle = { BottomSheetDefaults.DragHandle() },
+        sheetMaxWidth = 400.dp,
+        containerColor = MaterialTheme.colorScheme.primary
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .navigationBarsPadding()
+                .padding(horizontal = 20.dp)
+                .padding(bottom = 32.dp)
+        ) {
+            CalendarRangePicker{ _, _ ->
+
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {},
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = "Clear",
+                        style = MaterialTheme.typography.titleSmall,
+
+                    )
+                }
+                Button(
+                    modifier = Modifier.weight(1f),
+                    onClick = {},
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.onSecondary,
+                        contentColor = MaterialTheme.colorScheme.primary
+                    )
+                ) {
+                    Text(
+                        text = "Apply",
+                        style = MaterialTheme.typography.titleSmall,
+
+                    )
+                }
+            }
         }
     }
 }

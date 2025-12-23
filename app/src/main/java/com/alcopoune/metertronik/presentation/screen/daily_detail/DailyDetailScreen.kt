@@ -39,6 +39,7 @@ import com.alcopoune.metertronik.presentation.components.card.MetricCard
 import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import com.alcopoune.metertronik.utils.DecimalFormater
+import com.alcopoune.metertronik.utils.formatDate
 import com.alcopoune.metertronik.utils.formatRupiah
 import com.alcopoune.metertronik.utils.toHour
 
@@ -47,15 +48,15 @@ import com.alcopoune.metertronik.utils.toHour
 @Composable
 fun DetailsScreen(
     navController: NavController,
-    id: String,
+    date: String,
     viewModel: DailyDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) {
         viewModel.load(
-            deviceId = id,
-            date = "2025-12-14"
+            deviceId = "device-001",
+            date = date
         )
     }
 
@@ -65,8 +66,8 @@ fun DetailsScreen(
             errorMessage = (state as DailyDetailState.Error).message,
             onRetry = {
                 viewModel.load(
-                    deviceId = id,
-                    date = "2025-12-14"
+                    deviceId = "device-001",
+                    date = date
                 )
             },
             onBack = {
@@ -81,7 +82,7 @@ fun DetailsScreen(
             CenterAlignedTopAppBar(
                 title = {
                     Text(
-                        text = "Information $id",
+                        text = formatDate(date),
                         maxLines = 1,
                         style = MaterialTheme.typography.titleMedium
                     )
