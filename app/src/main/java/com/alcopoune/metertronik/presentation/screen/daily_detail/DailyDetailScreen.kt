@@ -37,6 +37,7 @@ import com.alcopoune.metertronik.domain.model.DailyDetailsData
 import com.alcopoune.metertronik.domain.model.HourlyData
 import com.alcopoune.metertronik.presentation.components.card.MetricCard
 import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
+import com.alcopoune.metertronik.presentation.components.loading.ShimmerDailyDetail
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import com.alcopoune.metertronik.utils.DecimalFormater
 import com.alcopoune.metertronik.utils.formatDate
@@ -106,14 +107,7 @@ fun DetailsScreen(
 
         when (state) {
             DailyDetailState.Loading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center
-                ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.secondary
-                    )
-                }
+                ShimmerDailyDetail()
             }
 
             is DailyDetailState.Error -> {

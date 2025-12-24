@@ -30,19 +30,18 @@ import java.util.Locale
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun CalendarRangePicker(
-    modifier: Modifier = Modifier,
+    startDate: LocalDate?,
+    endDate: LocalDate?,
     onRangeSelected: (LocalDate?, LocalDate?) -> Unit
 ) {
     var currentMonth by remember { mutableStateOf(YearMonth.now()) }
-    var startDate by remember { mutableStateOf<LocalDate?>(null) }
-    var endDate by remember { mutableStateOf<LocalDate?>(null) }
 
     val dates = remember(currentMonth) {
         generateMonthDates(currentMonth)
     }
 
     Column(
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(16.dp)
     ) {
@@ -52,11 +51,9 @@ fun CalendarRangePicker(
             onNext = { currentMonth = currentMonth.plusMonths(1) }
         )
 
-        Spacer(modifier = Modifier.height(12.dp))
-
+        Spacer(Modifier.height(12.dp))
         WeekDaysRow()
-
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(Modifier.height(8.dp))
 
         LazyVerticalGrid(
             columns = GridCells.Fixed(7),
@@ -71,38 +68,22 @@ fun CalendarRangePicker(
                     onClick = {
                         when {
                             startDate == null -> {
-                                startDate = date
+                                onRangeSelected(date, null)
                             }
-
                             endDate == null && date >= startDate -> {
-                                endDate = date
+                                onRangeSelected(startDate, date)
                             }
-
                             else -> {
-                                startDate = date
-                                endDate = null
+                                onRangeSelected(date, null)
                             }
                         }
-
-                        onRangeSelected(startDate, endDate)
                     }
                 )
             }
         }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Optional helper text
-        Text(
-            text = when {
-                startDate == null -> "Select start date"
-                endDate == null -> "Select end date"
-                else -> "Selected: $startDate → $endDate"
-            },
-            style = MaterialTheme.typography.bodySmall
-        )
     }
 }
+
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable

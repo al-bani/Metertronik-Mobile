@@ -43,7 +43,8 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
-import com.alcopoune.metertronik.presentation.components.LoadingDots
+import com.alcopoune.metertronik.presentation.components.loading.LoadingDots
+import com.alcopoune.metertronik.presentation.components.loading.ShimmerDashboard
 import com.alcopoune.metertronik.presentation.components.card.MetricCard
 import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
 import com.alcopoune.metertronik.presentation.components.chart.LineChartCustom
@@ -51,7 +52,7 @@ import com.alcopoune.metertronik.presentation.components.chart.LinearProgressBar
 import com.alcopoune.metertronik.presentation.components.chart.PowerGaugeChart
 import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
-import com.alcopoune.metertronik.utils.RealtimePulse
+import com.alcopoune.metertronik.presentation.components.loading.RealtimePulse
 import com.alcopoune.metertronik.utils.daysBeforeEndOfMonth
 import com.alcopoune.metertronik.utils.formatDailyLabel
 import com.alcopoune.metertronik.utils.formatMonthlyLabel
@@ -108,7 +109,7 @@ fun DashboardScreen(
 
             when (dashboardState) {
                 is DashboardState.Loading -> {
-                    LoadingDots()
+                    ShimmerDashboard()
                 }
 
                 is DashboardState.Success -> {

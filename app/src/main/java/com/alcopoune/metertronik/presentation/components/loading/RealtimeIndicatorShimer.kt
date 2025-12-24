@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.utils
+package com.alcopoune.metertronik.presentation.components.loading
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
@@ -6,14 +6,11 @@ import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.text.font.FontWeight
 
 @Composable
 fun RealtimePulse(
@@ -45,7 +42,7 @@ fun RealtimePulse(
         modifier
     }
 
-    androidx.compose.foundation.layout.Box(
+    Box(
         modifier = appliedModifier
     ) {
         content()

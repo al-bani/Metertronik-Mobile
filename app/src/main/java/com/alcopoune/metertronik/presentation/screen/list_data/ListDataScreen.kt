@@ -5,11 +5,9 @@ import androidx.annotation.RequiresApi
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -31,18 +29,15 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.alcopoune.metertronik.presentation.components.calendar.CalendarRangePicker
 import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
 import com.alcopoune.metertronik.presentation.navigation.Routes
-import com.alcopoune.metertronik.utils.RealtimePulse
+import com.alcopoune.metertronik.presentation.components.loading.RealtimePulse
+import com.alcopoune.metertronik.presentation.components.loading.ShimmerListData
 import com.alcopoune.metertronik.domain.model.DailyData
-import com.alcopoune.metertronik.domain.model.ListDataSummary
 import com.alcopoune.metertronik.utils.DecimalFormater
 import com.alcopoune.metertronik.utils.formatDate
 import com.alcopoune.metertronik.utils.formatRupiah
 import kotlinx.coroutines.flow.collectLatest
-import java.text.NumberFormat
-import java.time.Instant
-import java.time.ZoneId
+import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 //data class HistoryItemUi(
 //    val id: String,
@@ -69,7 +64,8 @@ fun ListDataScreen(
         skipPartiallyExpanded = true
     )
     var currentSortBy by remember { mutableStateOf("Time") }
-    var currentOrder by remember { mutableStateOf("ASC") }
+    // Default urutan awal selaras dengan ViewModel (TIME + DESC)
+    var currentOrder by remember { mutableStateOf("DESC") }
     var showDateRangeSheet by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -89,14 +85,6 @@ fun ListDataScreen(
             }
     }
 
-//    val displayItems = remember(uiState) {
-//        when (uiState) {
-//            is ListDataState.Success -> (uiState as ListDataState.Success).data.map { it.toHistoryItemUi() }
-//            is ListDataState.Error -> (uiState as ListDataState.Error).cachedData.map { it.toHistoryItemUi() }
-//            else -> emptyList()
-//        }
-//    }
-
     Scaffold(
         bottomBar = { MainBottomBar(navController = navController) }
     ) { innerPadding ->
@@ -106,97 +94,10 @@ fun ListDataScreen(
                 .padding(horizontal = 16.dp)
                 .padding(innerPadding)
         ) {
-            Spacer(modifier = Modifier.height(16.dp))
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                OutlinedTextField(
-                    value = searchQuery,
-                    enabled = false,
-                    onValueChange = { searchQuery = it },
-                    modifier = Modifier
-                        .weight(1f)
-                        .heightIn(min = 48.dp, max = 52.dp)
-                        .pointerInput(Unit) {
-                            detectTapGestures(
-                                onTap = {
-                                    showDateRangeSheet = true
-                                }
-                            )
-                        },
-                    label = { Text("Search by Range Data") },
-                    trailingIcon = {
-                        Icon(Icons.Default.DateRange, contentDescription = null)
-                    },
-                    shape = RoundedCornerShape(12.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.White,
-                        unfocusedContainerColor = Color.White,
-                        disabledContainerColor = Color.White,
-                        disabledTextColor = Color.Gray,
-                        disabledLabelColor = Color.Gray,
-                        disabledTrailingIconColor = Color.Gray
-                    ),
-                    singleLine = true
-                )
 
-                IconButton(
-                    onClick = { showSheet = true },
-                    modifier = Modifier.padding(start = 8.dp)
-                ) {
-                    Icon(Icons.Default.Tune, contentDescription = "Filter")
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            RealtimePulse(modifier = Modifier.fillMaxWidth()){
-                Card(
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSecondary),
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { }
-                            .padding(14.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(18.dp)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Filled.ElectricBolt,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onTertiary
-                        )
-
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = "Today Data",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Icon(
-                            imageVector = Icons.Filled.GraphicEq,
-                            contentDescription = "More options",
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                }
-            }
-            Spacer(modifier = Modifier.height(16.dp))
             when (uiState) {
                 ListDataState.Loading -> {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator()
-                    }
+                    ShimmerListData()
                 }
 
                 is ListDataState.Error -> {
@@ -214,22 +115,107 @@ fun ListDataScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Button(onClick = { viewModel.load("device-001") }) {
-                            Text("Coba Lagi")
+                            Text("Try Again")
                         }
                     }
                 }
 
                 is ListDataState.Success -> {
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        OutlinedTextField(
+                            value = searchQuery,
+                            enabled = false,
+                            onValueChange = { searchQuery = it },
+                            modifier = Modifier
+                                .weight(1f)
+                                .heightIn(min = 48.dp, max = 52.dp)
+                                .pointerInput(Unit) {
+                                    detectTapGestures(
+                                        onTap = {
+                                            showDateRangeSheet = true
+                                        }
+                                    )
+                                },
+                            placeholder = {Text(
+                                text = "Select date range",
+                                color = MaterialTheme.colorScheme.scrim.copy(0.7f)
+                            )},
+                            trailingIcon = {
+                                Icon(Icons.Default.DateRange, contentDescription = null, tint = MaterialTheme.colorScheme.scrim.copy(0.8f))
+                            },
+                            shape = RoundedCornerShape(12.dp),
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.White,
+                                unfocusedContainerColor = Color.White,
+                                disabledContainerColor = Color.White,
+                                disabledTextColor = Color.Gray,
+                                disabledLabelColor = Color.Gray,
+                                disabledTrailingIconColor = Color.Gray
+                            ),
+                            singleLine = true
+                        )
+
+                        IconButton(
+                            onClick = { showSheet = true },
+                            modifier = Modifier.padding(start = 8.dp)
+                        ) {
+                            Icon(Icons.Default.Tune, contentDescription = "Filter")
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                    RealtimePulse(modifier = Modifier.fillMaxWidth()){
+                        Card(
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.onSecondary),
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { }
+                                    .padding(14.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(18.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Filled.ElectricBolt,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onTertiary
+                                )
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Today Data",
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.SemiBold,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Icon(
+                                    imageVector = Icons.Filled.GraphicEq,
+                                    contentDescription = "More options",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(16.dp))
+
                     val successState = uiState as ListDataState.Success
                     if (successState.data.isEmpty()) {
                         Box(
                             modifier = Modifier.fillMaxSize(),
                             contentAlignment = Alignment.Center
                         ) {
-                            Text("Tidak ada data", style = MaterialTheme.typography.titleMedium)
+                            Text("No Data Found", style = MaterialTheme.typography.titleMedium)
                         }
                     } else {
-
 
                         LazyColumn(
                             state = listState,
@@ -286,6 +272,7 @@ fun ListDataScreen(
             onApply = { sortBy, order ->
                 currentSortBy = sortBy
                 currentOrder = order
+                viewModel.updateSort(sortBy, order)
                 showSheet = false
             },
             onDismiss = { showSheet = false }
@@ -295,7 +282,16 @@ fun ListDataScreen(
     if (showDateRangeSheet){
         DateRangeSheet(
             sheetState = dateRangeSheetState,
-            onDismiss = {showDateRangeSheet = false}
+            onDismiss = {showDateRangeSheet = false},
+            onApplyRange = { start, end ->
+                val displayFormatter = DateTimeFormatter.ofPattern("dd MMM yyyy")
+                searchQuery = if (start != null && end != null) {
+                    "${start.format(displayFormatter)} - ${end.format(displayFormatter)}"
+                } else {
+                    ""
+                }
+                viewModel.applyDateRange(start, end)
+            }
         )
     }
 }
@@ -355,8 +351,15 @@ private fun HistoryItemRow(
 @Composable
 fun DateRangeSheet(
     sheetState: SheetState,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onApplyRange: (LocalDate?, LocalDate?) -> Unit
 ){
+    var startDate by remember { mutableStateOf<LocalDate?>(null) }
+    var endDate by remember { mutableStateOf<LocalDate?>(null) }
+
+    // ✅ derived state (JANGAN pakai remember mutable)
+    val isApplyEnabled = startDate != null && endDate != null
+
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = sheetState,
@@ -371,17 +374,64 @@ fun DateRangeSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
-            CalendarRangePicker{ _, _ ->
 
+            CalendarRangePicker(
+                startDate = startDate,
+                endDate = endDate,
+                onRangeSelected = { start, end ->
+                    startDate = start
+                    endDate = end
+                }
+            )
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 10.dp),
+                horizontalArrangement = Arrangement.SpaceEvenly,
+
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                ) {
+                    Text(
+                        text = startDate?.let { formatDate(it.toString()) } ?: "Select start date",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.scrim
+                    )
+                    Text(
+                        text = "Start Date",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.scrim.copy(0.7f)
+                    )
+                }
+                Spacer(modifier = Modifier.width(32.dp))
+                Column(
+                    horizontalAlignment = Alignment.Start
+                ) {
+                    Text(
+                        text = endDate?.let { formatDate(it.toString()) } ?: "Select end date",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.scrim
+                    )
+                    Text(
+                        text = "End Date",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.scrim.copy(0.7f)
+                    )
+                }
             }
-
+            Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 Button(
                     modifier = Modifier.weight(1f),
-                    onClick = {},
+
+                    onClick = {
+                        startDate = null
+                        endDate = null
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.surface,
                         contentColor = MaterialTheme.colorScheme.primary
@@ -395,7 +445,11 @@ fun DateRangeSheet(
                 }
                 Button(
                     modifier = Modifier.weight(1f),
-                    onClick = {},
+                    enabled = isApplyEnabled,
+                    onClick = {
+                        onApplyRange(startDate, endDate)
+                        onDismiss()
+                    },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.onSecondary,
                         contentColor = MaterialTheme.colorScheme.primary
@@ -423,6 +477,16 @@ fun FilterBottomSheet(
 ) {
     var tempSortBy by remember { mutableStateOf(initialSortBy) }
     var tempOrder by remember { mutableStateOf(initialOrder) }
+    var lastSortBy by remember { mutableStateOf(initialSortBy) }
+
+    // Reset order hanya ketika user benar‑benar mengubah sortBy,
+    // tapi tetap menghormati nilai awal (initialOrder) saat sheet pertama kali dibuka.
+    LaunchedEffect(tempSortBy) {
+        if (tempSortBy != lastSortBy) {
+            tempOrder = if (tempSortBy == "Time") "DESC" else "ASC"
+            lastSortBy = tempSortBy
+        }
+    }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -437,8 +501,10 @@ fun FilterBottomSheet(
                 .padding(horizontal = 20.dp)
                 .padding(bottom = 32.dp)
         ) {
+
+            // ===== Title =====
             Text(
-                text = "Filter & Urutkan",
+                text = "Filter Data",
                 style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.scrim
@@ -446,11 +512,13 @@ fun FilterBottomSheet(
 
             Spacer(modifier = Modifier.height(24.dp))
 
+            // ===== SORT BY =====
             Text(
-                "Urutkan Berdasarkan",
+                text = "Sort By",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.scrim
             )
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(vertical = 8.dp)
@@ -461,53 +529,76 @@ fun FilterBottomSheet(
                         selectedItem = tempSortBy,
                         onClick = { tempSortBy = it },
                         modifier = Modifier.weight(1f),
-                        icon = if (item == "Cost") Icons.Default.Money else Icons.Default.DateRange
+                        icon = if (item == "Cost")
+                            Icons.Default.Money
+                        else
+                            Icons.Default.DateRange
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(8.dp))
 
+            // ===== ORDER =====
             Text(
-                "Urutan",
+                text = "Sort",
                 style = MaterialTheme.typography.labelLarge,
                 color = MaterialTheme.colorScheme.scrim
             )
+
+            val orders = if (tempSortBy == "Time") {
+                listOf(
+                    "Oldest" to "ASC",
+                    "Newer" to "DESC"
+                )
+            } else {
+                listOf(
+                    "Lowest" to "ASC",
+                    "Highest" to "DESC"
+                )
+            }
+
             Row(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
                 modifier = Modifier.padding(vertical = 8.dp)
             ) {
-                val orders = listOf("Terendah" to "ASC", "Tertinggi" to "DESC")
                 orders.forEach { (label, value) ->
                     SortButton(
                         item = label,
                         selectedItem = if (tempOrder == value) label else "",
                         onClick = { tempOrder = value },
                         modifier = Modifier.weight(1f),
-                        icon = if (value == "ASC") Icons.Default.ArrowUpward else Icons.Default.ArrowDownward
-
+                        icon = if (value == "ASC")
+                            Icons.Default.ArrowUpward
+                        else
+                            Icons.Default.ArrowDownward
                     )
                 }
             }
 
             Spacer(modifier = Modifier.height(32.dp))
 
+            // ===== APPLY =====
             Button(
-                onClick = { onApply(tempSortBy, tempOrder) },
+                onClick = {
+                    onApply(tempSortBy, tempOrder)
+                    onDismiss()
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(48.dp),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.outlinedButtonColors(
+                colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.surface,
-                    contentColor = MaterialTheme.colorScheme.primary
-                ),
+                    contentColor = MaterialTheme.colorScheme.primary,
+                )
             ) {
-                Text("Terapkan Filter", color = Color.White)
+                Text("Apply Filter")
             }
         }
     }
 }
+
 
 @Composable
 fun SortButton(

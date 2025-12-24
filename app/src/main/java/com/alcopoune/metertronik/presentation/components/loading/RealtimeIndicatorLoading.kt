@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.components
+package com.alcopoune.metertronik.presentation.components.loading
 
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
