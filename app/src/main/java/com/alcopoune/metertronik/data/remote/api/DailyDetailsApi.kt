@@ -9,7 +9,7 @@ interface DailyDetailsApi {
     @GET("daily/{deviceId}/detail")
     suspend fun getDailyDetail(
         @Path("deviceId") deviceId: String,
-        @Query("date") date: String
+        @Query("date") date: String? = null
     ): DailyDetailResponse
 }
 

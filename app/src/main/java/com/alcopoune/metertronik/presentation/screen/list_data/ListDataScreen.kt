@@ -177,7 +177,9 @@ fun ListDataScreen(
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { }
+                                    .clickable {
+                                        navController.navigate(Routes.Detail.createRoute(""))
+                                    }
                                     .padding(14.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(18.dp)

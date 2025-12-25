@@ -14,7 +14,7 @@ class DailyDetailsRepository @Inject constructor(
 
     suspend fun getDailyDetail(
         deviceId: String,
-        date: String
+        date: String? = null
     ): DailyDetailsData {
         return try {
             Log.d(tag, "getDailyDetail() deviceId=$deviceId, date=$date - calling API")
