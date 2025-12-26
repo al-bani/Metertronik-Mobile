@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.screen.settings
+package com.alcopoune.metertronik.presentation.screen.main.settings
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer

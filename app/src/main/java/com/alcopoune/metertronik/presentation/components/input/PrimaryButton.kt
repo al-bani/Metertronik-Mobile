@@ -2,6 +2,7 @@ package com.alcopoune.metertronik.presentation.components.input
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -22,7 +23,8 @@ fun PrimaryButton(
     contentColor: Color = MaterialTheme.colorScheme.primary,
     enabled: Boolean = true,
     height: androidx.compose.ui.unit.Dp = 44.dp,
-    shape: Shape = RoundedCornerShape(6.dp)
+    shape: Shape = RoundedCornerShape(6.dp),
+    fullWidth: Boolean = true
 ) {
     Button(
         onClick = onClick,
@@ -35,7 +37,10 @@ fun PrimaryButton(
             disabledContentColor = contentColor.copy(alpha = 0.6f)
         ),
         modifier = modifier
-            .fillMaxWidth()
+            .then(
+                if (fullWidth) Modifier.fillMaxWidth()
+                else Modifier.wrapContentWidth()
+            )
             .height(height)
     ) {
         Text(text, style = MaterialTheme.typography.titleMedium)

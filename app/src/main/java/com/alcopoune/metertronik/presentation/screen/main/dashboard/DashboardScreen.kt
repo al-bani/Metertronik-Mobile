@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.screen.dashboard
+package com.alcopoune.metertronik.presentation.screen.main.dashboard
 
 import android.annotation.SuppressLint
 import android.os.Build

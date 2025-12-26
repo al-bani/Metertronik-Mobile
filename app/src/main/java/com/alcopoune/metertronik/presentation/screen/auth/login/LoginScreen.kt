@@ -45,7 +45,7 @@ fun LoginScreen() {
         bottomBar = {
             Row(
                 modifier = Modifier.fillMaxWidth()
-                    .padding(32.dp),
+                    .padding(bottom = 56.dp),
                 horizontalArrangement = Arrangement.Center
             ) {
                 Text(
@@ -121,11 +121,11 @@ fun LoginScreen() {
             )
             Spacer(modifier = Modifier.height(26.dp))
             Text(
-                text = "Or Login With",
+                text = "Continue With",
                 color = MaterialTheme.colorScheme.scrim.copy(0.7f),
                 style = MaterialTheme.typography.bodyMedium
             )
-            Spacer(modifier = Modifier.height(26.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             Surface(
                 modifier = Modifier.clickable {  },

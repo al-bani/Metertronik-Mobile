@@ -1,7 +1,10 @@
 package com.alcopoune.metertronik.presentation.components.input
 
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Visibility
@@ -32,10 +35,11 @@ fun PrimaryTextField(
     placeholder: String = "",
     singleLine: Boolean = true,
     enabled: Boolean = true,
-    height: androidx.compose.ui.unit.Dp = 52.dp,
+    height: androidx.compose.ui.unit.Dp = 53.dp,
     shape: Shape = RoundedCornerShape(6.dp),
     trailingIcon: (@Composable () -> Unit)? = null,
     isPassword: Boolean = false,
+    errorMessage: String? = null,
 ) {
     var passwordVisible by remember { mutableStateOf(false) }
     
@@ -59,26 +63,53 @@ fun PrimaryTextField(
         trailingIcon
     }
     
-    TextField(
-        value = value,
-        onValueChange = onValueChange,
-        placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.scrim.copy(0.5f)) },
-        singleLine = singleLine,
-        enabled = enabled,
-        visualTransformation = visualTransformation,
-        shape = shape,
-        trailingIcon = defaultTrailingIcon,
-        colors = TextFieldDefaults.colors(
-            focusedContainerColor = MaterialTheme.colorScheme.scrim.copy(0.1f),
-            unfocusedContainerColor = MaterialTheme.colorScheme.scrim.copy(0.1f),
-            disabledContainerColor = MaterialTheme.colorScheme.scrim.copy(0.1f),
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent,
-            disabledIndicatorColor = Color.Transparent
-        ),
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height)
-    )
+    val isError = errorMessage != null
+    
+    Column(modifier = modifier.fillMaxWidth()) {
+        TextField(
+            value = value,
+            onValueChange = onValueChange,
+            placeholder = { Text(placeholder, color = MaterialTheme.colorScheme.scrim.copy(0.5f)) },
+            singleLine = singleLine,
+            enabled = enabled,
+            visualTransformation = visualTransformation,
+            shape = shape,
+            trailingIcon = defaultTrailingIcon,
+            isError = isError,
+            colors = TextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.scrim.copy(0.08f),
+                unfocusedContainerColor = MaterialTheme.colorScheme.scrim.copy(0.08f),
+                disabledContainerColor = MaterialTheme.colorScheme.scrim.copy(0.08f),
+                focusedIndicatorColor = Color.Transparent,
+                unfocusedIndicatorColor = Color.Transparent,
+                disabledIndicatorColor = Color.Transparent,
+                errorContainerColor = MaterialTheme.colorScheme.scrim.copy(0.08f),
+                errorIndicatorColor = Color.Transparent
+            ),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(height)
+                .then(
+                    if (isError) {
+                        Modifier.border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.error,
+                            shape = shape
+                        )
+                    } else {
+                        Modifier
+                    }
+                )
+        )
+        
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+                modifier = Modifier.padding(start = 16.dp, top = 4.dp)
+            )
+        }
+    }
 }
 

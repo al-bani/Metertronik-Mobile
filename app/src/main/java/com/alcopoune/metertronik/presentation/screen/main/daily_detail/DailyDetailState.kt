@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.screen.daily_detail
+package com.alcopoune.metertronik.presentation.screen.main.daily_detail
 
 import com.alcopoune.metertronik.domain.model.DailyDetailsData
 

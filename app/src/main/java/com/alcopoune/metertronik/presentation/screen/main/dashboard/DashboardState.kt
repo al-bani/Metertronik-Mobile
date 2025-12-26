@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.screen.dashboard
+package com.alcopoune.metertronik.presentation.screen.main.dashboard
 
 import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime

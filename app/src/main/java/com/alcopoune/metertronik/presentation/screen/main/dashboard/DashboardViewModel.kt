@@ -1,4 +1,4 @@
-package com.alcopoune.metertronik.presentation.screen.dashboard
+package com.alcopoune.metertronik.presentation.screen.main.dashboard
 
 import android.util.Log
 import androidx.lifecycle.ViewModel

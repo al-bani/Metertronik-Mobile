@@ -9,10 +9,10 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.alcopoune.metertronik.presentation.screen.dashboard.DashboardScreen
-import com.alcopoune.metertronik.presentation.screen.list_data.ListDataScreen
-import com.alcopoune.metertronik.presentation.screen.settings.SettingsScreen
-import com.alcopoune.metertronik.presentation.screen.daily_detail.DetailsScreen
+import com.alcopoune.metertronik.presentation.screen.main.dashboard.DashboardScreen
+import com.alcopoune.metertronik.presentation.screen.main.list_data.ListDataScreen
+import com.alcopoune.metertronik.presentation.screen.main.settings.SettingsScreen
+import com.alcopoune.metertronik.presentation.screen.main.daily_detail.DetailsScreen
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
