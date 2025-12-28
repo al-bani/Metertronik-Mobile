@@ -73,6 +73,12 @@ dependencies {
     kapt(libs.hilt.compiler)
     implementation(libs.androidx.hilt.navigation.compose)
     
+    // DataStore Preferences
+    implementation(libs.androidx.datastore.preferences)
+    
+    // Security Crypto
+    implementation(libs.androidx.security.crypto)
+    
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

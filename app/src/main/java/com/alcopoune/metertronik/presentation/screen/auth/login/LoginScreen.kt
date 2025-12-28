@@ -1,6 +1,5 @@
 package com.alcopoune.metertronik.presentation.screen.auth.login
 
-import android.R.attr.content
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -15,8 +14,10 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -30,15 +31,20 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.alcopoune.metertronik.R
 import com.alcopoune.metertronik.presentation.components.input.PrimaryButton
 import com.alcopoune.metertronik.presentation.components.input.PrimaryTextField
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 
 @Composable
-fun LoginScreen() {
-    var username by remember { mutableStateOf("") }
+fun LoginScreen(
+    viewModel: LoginViewModel = hiltViewModel()
+) {
+    var identifier by remember { mutableStateOf("") } // username or email
     var password by remember { mutableStateOf("") }
+    
+    val uiState by viewModel.uiState.collectAsState()
 
     
     Scaffold(
@@ -90,18 +96,34 @@ fun LoginScreen() {
             }
             Spacer(modifier = Modifier.height(46.dp))
             PrimaryTextField(
-                value = username,
-                onValueChange = { username = it },
-                placeholder = "Insert your Username or Email"
+                value = identifier,
+                onValueChange = { identifier = it },
+                placeholder = "Insert your Username or Email",
+                enabled = uiState !is LoginState.Loading
             )
             Spacer(modifier = Modifier.height(12.dp))
             PrimaryTextField(
                 value = password,
                 onValueChange = { password = it },
                 placeholder = "Insert your Password",
-                isPassword = true
+                isPassword = true,
+                enabled = uiState !is LoginState.Loading
             )
             Spacer(modifier = Modifier.height(8.dp))
+            
+            // Error message
+            if (uiState is LoginState.Error) {
+                Text(
+                    text = (uiState as LoginState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+            
             Row(
                 modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.Start
@@ -114,11 +136,27 @@ fun LoginScreen() {
             }
 
             Spacer(modifier = Modifier.height(32.dp))
-            PrimaryButton(
-                text = "Login",
-                onClick = { },
-                containerColor = MaterialTheme.colorScheme.onSecondary
-            )
+            
+            if (uiState is LoginState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(24.dp).height(24.dp),
+                    color = MaterialTheme.colorScheme.onSecondary
+                )
+            } else {
+                PrimaryButton(
+                    text = "Login",
+                    onClick = { 
+                        // Determine if identifier is email or username
+                        val isEmail = identifier.contains("@")
+                        viewModel.login(
+                            email = if (isEmail) identifier else "",
+                            username = if (!isEmail) identifier else "",
+                            password = password
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.onSecondary
+                )
+            }
             Spacer(modifier = Modifier.height(26.dp))
             Text(
                 text = "Continue With",

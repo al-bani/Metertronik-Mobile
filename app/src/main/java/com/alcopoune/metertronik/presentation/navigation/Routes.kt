@@ -4,6 +4,7 @@ import java.net.URLEncoder
 import java.nio.charset.StandardCharsets
 
 sealed class Routes(val route: String) {
+    data object Login : Routes("login")
     data object Dashboard : Routes("dashboard")
     data object Detail : Routes("detail/{date}") {
         const val ARG_DATE: String = "date"

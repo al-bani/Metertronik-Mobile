@@ -1,13 +1,17 @@
 package com.alcopoune.metertronik.di
 
+import com.alcopoune.metertronik.data.local.DataStorage
+import com.alcopoune.metertronik.data.remote.api.AuthApi
 import com.alcopoune.metertronik.data.remote.api.DailyDetailsApi
 import com.alcopoune.metertronik.data.remote.api.DashboardApi
 import com.alcopoune.metertronik.data.remote.api.ListDataApi
 import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
+import com.alcopoune.metertronik.data.repository.AuthRepository
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
 import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.ListDataRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
+import com.alcopoune.metertronik.data.util.AuthInterceptor
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -18,6 +22,7 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import javax.inject.Named
 import javax.inject.Singleton
 
 @Module
@@ -37,7 +42,8 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideOkHttpClient(): OkHttpClient {
+    @Named("auth")
+    fun provideAuthOkHttpClient(): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
@@ -52,8 +58,42 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(
-        client: OkHttpClient,
+    @Named("api")
+    fun provideApiOkHttpClient(
+        authInterceptor: AuthInterceptor
+    ): OkHttpClient {
+        val logging = HttpLoggingInterceptor().apply {
+            level = HttpLoggingInterceptor.Level.BODY
+        }
+
+        return OkHttpClient.Builder()
+            .addInterceptor(authInterceptor)
+            .addInterceptor(logging)
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("auth")
+    fun provideAuthRetrofit(
+        @Named("auth") client: OkHttpClient,
+        gson: Gson
+    ): Retrofit {
+        return Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(client)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    @Provides
+    @Singleton
+    @Named("api")
+    fun provideApiRetrofit(
+        @Named("api") client: OkHttpClient,
         gson: Gson
     ): Retrofit {
         return Retrofit.Builder()
@@ -66,7 +106,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDailyDetailsApi(
-        retrofit: Retrofit
+        @Named("api") retrofit: Retrofit
     ): DailyDetailsApi {
         return retrofit.create(DailyDetailsApi::class.java)
     }
@@ -82,7 +122,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideDashboardApi(
-        retrofit: Retrofit
+        @Named("api") retrofit: Retrofit
     ): DashboardApi {
         return  retrofit.create(DashboardApi::class.java)
     }
@@ -98,7 +138,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideListDataApi(
-        retrofit: Retrofit
+        @Named("api") retrofit: Retrofit
     ): ListDataApi {
         return  retrofit.create(ListDataApi::class.java)
     }
@@ -120,7 +160,7 @@ object AppModule {
     @Provides
     @Singleton
     fun provideWebSocketService(
-        okHttpClient: OkHttpClient,
+        @Named("api") okHttpClient: OkHttpClient,
         gson: Gson,
         webSocketBaseUrl: String
     ): WebSocketService {
@@ -133,5 +173,31 @@ object AppModule {
         webSocketService: WebSocketService
     ): RealtimeRepository {
         return RealtimeRepository(webSocketService)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthApi(
+        @Named("auth") retrofit: Retrofit
+    ): AuthApi {
+        return retrofit.create(AuthApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthInterceptor(
+        dataStorage: DataStorage,
+        gson: Gson
+    ): AuthInterceptor {
+        return AuthInterceptor(dataStorage, gson)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthRepository(
+        api: AuthApi,
+        dataStorage: DataStorage
+    ): AuthRepository {
+        return AuthRepository(api, dataStorage)
     }
 }

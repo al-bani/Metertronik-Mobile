@@ -78,7 +78,6 @@ fun SearchIdentifierScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top
         ) {
-            Spacer(modifier = Modifier.height(52.dp))
 
             if (!requestSent) {
                 // Initial state: Input form

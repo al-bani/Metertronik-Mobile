@@ -3,12 +3,23 @@ package com.alcopoune.metertronik.presentation.navigation
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.alcopoune.metertronik.data.local.DataStorage
+import com.alcopoune.metertronik.presentation.screen.auth.login.LoginScreen
+import com.alcopoune.metertronik.presentation.screen.auth.login.LoginState
+import com.alcopoune.metertronik.presentation.screen.auth.login.LoginViewModel
 import com.alcopoune.metertronik.presentation.screen.main.dashboard.DashboardScreen
 import com.alcopoune.metertronik.presentation.screen.main.list_data.ListDataScreen
 import com.alcopoune.metertronik.presentation.screen.main.settings.SettingsScreen
@@ -20,12 +31,44 @@ import java.nio.charset.StandardCharsets
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
 fun AppNavHost(
-    navController: NavHostController = rememberNavController()
+    navController: NavHostController = rememberNavController(),
+    startDestination: String,
+    dataStorage: DataStorage
 ) {
-    NavHost(
-        navController = navController,
-        startDestination = Routes.Dashboard.route
-    ) {
+    var initialDestination by remember { mutableStateOf<String?>(null) }
+    
+    // Check token on startup
+    LaunchedEffect(Unit) {
+        val refreshToken = dataStorage.getRefreshToken()
+        initialDestination = if (refreshToken.isNullOrBlank()) {
+            Routes.Login.route
+        } else {
+            startDestination
+        }
+    }
+    
+    // Only show NavHost when initial destination is determined
+    initialDestination?.let { destination ->
+        NavHost(
+            navController = navController,
+            startDestination = destination
+        ) {
+        composable(Routes.Login.route) {
+            val viewModel: LoginViewModel = hiltViewModel()
+            val uiState by viewModel.uiState.collectAsState()
+            
+            LoginScreen(viewModel = viewModel)
+            
+            // Navigate to dashboard on successful login
+            LaunchedEffect(uiState) {
+                if (uiState is LoginState.Success) {
+                    navController.navigate(Routes.Dashboard.route) {
+                        popUpTo(Routes.Login.route) { inclusive = true }
+                    }
+                }
+            }
+        }
+
         composable(Routes.Dashboard.route) {
             DashboardScreen(navController = navController)
         }
@@ -71,6 +114,7 @@ fun AppNavHost(
                     navController.popBackStack()
                 }
             )
+        }
         }
     }
 }
