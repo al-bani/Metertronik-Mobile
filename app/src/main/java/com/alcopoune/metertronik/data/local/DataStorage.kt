@@ -11,6 +11,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -44,6 +45,16 @@ class DataStorage @Inject constructor(
         return accessToken.first()
     }
 
+    /**
+     * Synchronous function to get access token for use in interceptors.
+     * This is necessary because interceptors run on OkHttp threads and cannot use suspend functions.
+     */
+    fun getAccessTokenSync(): String? {
+        return runBlocking {
+            accessToken.first()
+        }
+    }
+
     suspend fun getRefreshToken(): String? {
         return refreshToken.first()
     }
@@ -65,6 +76,12 @@ class DataStorage @Inject constructor(
             preferences.remove(ACCESS_TOKEN_KEY)
             preferences.remove(REFRESH_TOKEN_KEY)
             preferences.remove(USER_ID_KEY)
+        }
+    }
+
+    fun clearTokensBlocking() {
+        runBlocking {
+            clearTokens()
         }
     }
 }

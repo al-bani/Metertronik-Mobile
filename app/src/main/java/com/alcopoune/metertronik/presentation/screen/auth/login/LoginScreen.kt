@@ -11,12 +11,16 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -32,13 +36,16 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
 import com.alcopoune.metertronik.R
 import com.alcopoune.metertronik.presentation.components.input.PrimaryButton
 import com.alcopoune.metertronik.presentation.components.input.PrimaryTextField
+import com.alcopoune.metertronik.presentation.navigation.Routes
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 
 @Composable
 fun LoginScreen(
+    navController: NavHostController,
     viewModel: LoginViewModel = hiltViewModel()
 ) {
     var identifier by remember { mutableStateOf("") } // username or email
@@ -46,6 +53,36 @@ fun LoginScreen(
     
     val uiState by viewModel.uiState.collectAsState()
 
+    LaunchedEffect(Unit) {
+        // Prefill email setelah verify sukses (bukan data sensitif)
+        val prefill = navController.currentBackStackEntry?.savedStateHandle?.get<String>("prefill_email")
+        if (!prefill.isNullOrBlank()) {
+            identifier = prefill
+            navController.currentBackStackEntry?.savedStateHandle?.remove<String>("prefill_email")
+        }
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is LoginState.Success) {
+            val result = (uiState as LoginState.Success).result
+            if (!result.user.verified) {
+                // User belum verified -> masuk ke Verify, kirim email dari userDto (domain model)
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    set("verify_email", result.user.email)
+                    set("verify_source", "login")
+                    set("verify_auto_resend", true)
+                }
+                navController.navigate(Routes.Verify.route)
+                // consume event biar gak loop navigate
+                viewModel.resetState()
+            } else {
+                navController.navigate(Routes.Dashboard.route) {
+                    popUpTo(Routes.Login.route) { inclusive = true }
+                }
+                viewModel.resetState()
+            }
+        }
+    }
     
     Scaffold(
         bottomBar = {
@@ -64,7 +101,10 @@ fun LoginScreen(
                     text = "Register Here",
                     color = MaterialTheme.colorScheme.secondary,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable(onClick = {
+                        navController.navigate(Routes.Register.route)
+                    })
                 )
             }
         }
@@ -73,9 +113,12 @@ fun LoginScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(16.dp)
-                .padding(innerPadding),
+                .padding(innerPadding)
+                .verticalScroll(rememberScrollState())
+                .imePadding(),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center
+            verticalArrangement = Arrangement.Center,
+
         ) {
             Column (
                 modifier = Modifier.fillMaxWidth(),
@@ -183,13 +226,5 @@ fun LoginScreen(
                 }
             }
         }
-    }
-}
-
-@Preview
-@Composable
-private fun PreviewWelcome() {
-    MetertronikTheme{
-        LoginScreen()
     }
 }

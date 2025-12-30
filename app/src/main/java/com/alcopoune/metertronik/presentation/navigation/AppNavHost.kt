@@ -18,13 +18,15 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.alcopoune.metertronik.data.local.DataStorage
 import com.alcopoune.metertronik.presentation.screen.auth.login.LoginScreen
-import com.alcopoune.metertronik.presentation.screen.auth.login.LoginState
 import com.alcopoune.metertronik.presentation.screen.auth.login.LoginViewModel
+import com.alcopoune.metertronik.presentation.screen.auth.register.RegisterScreen
+import com.alcopoune.metertronik.presentation.screen.auth.verify.VerifyScreen
 import com.alcopoune.metertronik.presentation.screen.main.dashboard.DashboardScreen
 import com.alcopoune.metertronik.presentation.screen.main.list_data.ListDataScreen
 import com.alcopoune.metertronik.presentation.screen.main.settings.SettingsScreen
 import com.alcopoune.metertronik.presentation.screen.main.daily_detail.DetailsScreen
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
+import com.alcopoune.metertronik.presentation.screen.main.settings.SettingsViewModel
 import java.net.URLDecoder
 import java.nio.charset.StandardCharsets
 
@@ -55,18 +57,53 @@ fun AppNavHost(
         ) {
         composable(Routes.Login.route) {
             val viewModel: LoginViewModel = hiltViewModel()
-            val uiState by viewModel.uiState.collectAsState()
-            
-            LoginScreen(viewModel = viewModel)
-            
-            // Navigate to dashboard on successful login
-            LaunchedEffect(uiState) {
-                if (uiState is LoginState.Success) {
-                    navController.navigate(Routes.Dashboard.route) {
-                        popUpTo(Routes.Login.route) { inclusive = true }
+            LoginScreen(
+                navController = navController,
+                viewModel = viewModel
+            )
+        }
+
+        composable(Routes.Register.route) {
+            RegisterScreen(navController = navController)
+        }
+
+        composable(Routes.Verify.route) {
+            val prev = navController.previousBackStackEntry
+            val email = prev?.savedStateHandle?.get<String>("verify_email").orEmpty()
+            val source = prev?.savedStateHandle?.get<String>("verify_source").orEmpty()
+            val autoResend = prev?.savedStateHandle?.get<Boolean>("verify_auto_resend") == true
+
+            VerifyScreen(
+                email = email,
+                autoResendOtp = autoResend,
+                onBack = {
+                    // Dari Register: balik ke Register dan clear password UI-nya (password tidak disimpan).
+                    if (source == "register") {
+                        prev?.savedStateHandle?.set("clear_password", true)
+                    }
+                    prev?.savedStateHandle?.remove<String>("verify_email")
+                    prev?.savedStateHandle?.remove<Boolean>("verify_auto_resend")
+                    prev?.savedStateHandle?.remove<String>("verify_source")
+                    navController.popBackStack()
+                },
+                onNavigateLogin = {
+                    // Verify sukses -> arahkan user ke Login (tanpa auto-login), prefill email.
+                    prev?.savedStateHandle?.set("prefill_email", email)
+                    prev?.savedStateHandle?.remove<String>("verify_email")
+                    prev?.savedStateHandle?.remove<Boolean>("verify_auto_resend")
+                    prev?.savedStateHandle?.remove<String>("verify_source")
+
+                    if (source == "login") {
+                        // Balik ke Login yang ada di stack
+                        navController.popBackStack()
+                    } else {
+                        // Dari Register -> pindah ke Login, buang Register & Verify dari stack
+                        navController.navigate(Routes.Login.route) {
+                            popUpTo(Routes.Register.route) { inclusive = true }
+                        }
                     }
                 }
-            }
+            )
         }
 
         composable(Routes.Dashboard.route) {

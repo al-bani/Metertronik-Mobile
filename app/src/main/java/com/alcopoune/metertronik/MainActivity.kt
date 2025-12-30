@@ -48,7 +48,6 @@ class MainActivity : ComponentActivity() {
             MetertronikTheme {
                 var startDestination by remember { mutableStateOf<String?>(null) }
 
-                // Check token and refresh on startup
                 LaunchedEffect(Unit) {
                     val refreshToken = dataStorage.getRefreshToken()
 

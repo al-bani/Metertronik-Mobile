@@ -23,6 +23,8 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.QuestionMark
+import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +32,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -42,15 +46,22 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import com.alcopoune.metertronik.R
 import com.alcopoune.metertronik.presentation.components.input.PrimaryButton
 import com.alcopoune.metertronik.presentation.components.input.PrimaryTextField
+import com.alcopoune.metertronik.presentation.navigation.Routes
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 import com.alcopoune.metertronik.utils.validator.InputValidator
 import kotlinx.coroutines.launch
 
 @Composable
-fun RegisterScreen() {
+fun RegisterScreen(
+    navController: NavHostController,
+    viewModel: RegisterViewModel = hiltViewModel()
+) {
     var username by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -58,6 +69,51 @@ fun RegisterScreen() {
     
     var emailError by remember { mutableStateOf<String?>(null) }
     var passwordError by remember { mutableStateOf<String?>(null) }
+    var formError by remember { mutableStateOf<String?>(null) }
+
+    val uiState by viewModel.uiState.collectAsState()
+    val checkIdState by viewModel.checkIdState.collectAsState()
+    val navBackStackEntry by navController.currentBackStackEntryAsState()
+    val usernameErrorMessage: String? = when {
+        formError != null -> formError
+        checkIdState is CheckIdState.Error -> (checkIdState as CheckIdState.Error).message
+        checkIdState is CheckIdState.Result && !(checkIdState as CheckIdState.Result).available -> "Username sudah digunakan"
+        else -> null
+    }
+
+    LaunchedEffect(uiState) {
+        if (uiState is RegisterState.Success) {
+            val result = (uiState as RegisterState.Success).result
+            if (!result.status) {
+                // Kirim credential ke Verify via SavedStateHandle (tanpa taruh password di route)
+                navController.currentBackStackEntry?.savedStateHandle?.apply {
+                    set("verify_email", email)
+         
+                    set("verify_source", "register")
+                    set("verify_auto_resend", false)
+                }
+                navController.navigate(Routes.Verify.route)
+                // Penting: consume event success supaya saat user back dari Verify
+                // RegisterScreen tidak auto-navigate ke Verify lagi.
+                viewModel.resetState()
+            } else {
+                navController.navigate(Routes.Login.route) {
+                    popUpTo(Routes.Register.route) { inclusive = true }
+                }
+                viewModel.resetState()
+            }
+        }
+    }
+
+    // Ketika back dari verify: email & username tetap, password harus kosong
+    LaunchedEffect(navBackStackEntry) {
+        val shouldClearPassword = navBackStackEntry?.savedStateHandle?.get<Boolean>("clear_password") == true
+        if (shouldClearPassword) {
+            password = ""
+            confirmPassword = ""
+            navBackStackEntry?.savedStateHandle?.set("clear_password", false)
+        }
+    }
 
     Scaffold(
         bottomBar = {
@@ -76,7 +132,12 @@ fun RegisterScreen() {
                     text = "Login Here",
                     color = MaterialTheme.colorScheme.secondary,
                     style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.SemiBold,
+                    modifier = Modifier.clickable {
+                        navController.navigate(Routes.Login.route) {
+                            popUpTo(Routes.Register.route) { inclusive = true }
+                        }
+                    }
                 )
             }
         }
@@ -114,19 +175,63 @@ fun RegisterScreen() {
                 ) {
                     PrimaryTextField(
                         value = username,
-                        onValueChange = { username = it },
-                        placeholder = "Insert your Username",
-                        trailingIcon = {
-
+                        onValueChange = {
+                            username = it
+                            viewModel.resetCheckIdState()
+                            formError = null
                         },
-                        modifier = Modifier.weight(1f)
+                        placeholder = "Insert your Username",
+                        errorMessage = usernameErrorMessage,
+                        trailingIcon = {
+                            when (checkIdState) {
+                                is CheckIdState.Loading -> {
+                                    CircularProgressIndicator(
+                                        modifier = Modifier.width(18.dp).height(18.dp),
+                                        strokeWidth = 2.dp
+                                    )
+                                }
+
+                                is CheckIdState.Result -> {
+                                    val result = checkIdState as CheckIdState.Result
+                                    Icon(
+                                        imageVector = if (result.available) Icons.Default.CheckCircle else Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = if (result.available) MaterialTheme.colorScheme.secondary else MaterialTheme.colorScheme.error
+                                    )
+                                }
+
+                                is CheckIdState.Error -> {
+                                    Icon(
+                                        imageVector = Icons.Default.Warning,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
+
+                                else -> Unit
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        enabled = uiState !is RegisterState.Loading
                     )
 
                     PrimaryButton(
                         text = "Check",
-                        onClick = { },
+                        onClick = { viewModel.checkId(username) },
                         containerColor = MaterialTheme.colorScheme.secondary,
-                        fullWidth = false
+                        fullWidth = false,
+                        enabled = uiState !is RegisterState.Loading && checkIdState !is CheckIdState.Loading
+                    )
+                }
+
+                if (checkIdState is CheckIdState.Result && (checkIdState as CheckIdState.Result).available) {
+                    Text(
+                        text = (checkIdState as CheckIdState.Result).message,
+                        color = MaterialTheme.colorScheme.secondary,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
                     )
                 }
 
@@ -137,7 +242,8 @@ fun RegisterScreen() {
                         emailError = InputValidator.getEmailErrorMessage(newValue)
                     },
                     placeholder = "Insert your Email",
-                    errorMessage = emailError
+                    errorMessage = emailError,
+                    enabled = uiState !is RegisterState.Loading
                 )
                 PrimaryTextField(
                     value = password,
@@ -147,22 +253,65 @@ fun RegisterScreen() {
                     },
                     placeholder = "Insert your Password",
                     isPassword = true,
-                    errorMessage = passwordError
+                    errorMessage = passwordError,
+                    enabled = uiState !is RegisterState.Loading
                 )
                 PrimaryTextField(
                     value = confirmPassword,
                     onValueChange = { confirmPassword = it },
                     placeholder = "Confirm your Password",
-                    isPassword = true
+                    isPassword = true,
+                    enabled = uiState !is RegisterState.Loading
                 )
             }
             Spacer(modifier = Modifier.height(26.dp))
 
-            PrimaryButton(
-                text = "Register",
-                onClick = { },
-                containerColor = MaterialTheme.colorScheme.onSecondary
-            )
+            // Error dari API register (bukan error per-field)
+            if (uiState is RegisterState.Error) {
+                Text(
+                    text = (uiState as RegisterState.Error).message,
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 4.dp)
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+            }
+
+            if (uiState is RegisterState.Loading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.width(24.dp).height(24.dp),
+                    color = MaterialTheme.colorScheme.onSecondary
+                )
+            } else {
+                PrimaryButton(
+                    text = "Register",
+                    onClick = {
+                        formError = null
+                        val idAvailable = (checkIdState as? CheckIdState.Result)?.available
+                        if (idAvailable == false) {
+                            formError = "Username sudah digunakan"
+                            return@PrimaryButton
+                        }
+                        if (idAvailable == null) {
+                            formError = "Silakan cek username dulu"
+                            return@PrimaryButton
+                        }
+                        if (emailError != null || passwordError != null) {
+                            formError = "Periksa kembali email/password kamu"
+                            return@PrimaryButton
+                        }
+                        viewModel.register(
+                            email = email,
+                            username = username,
+                            password = password,
+                            confirmPassword = confirmPassword
+                        )
+                    },
+                    containerColor = MaterialTheme.colorScheme.onSecondary
+                )
+            }
             Spacer(modifier = Modifier.height(26.dp))
 
             Column(

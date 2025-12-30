@@ -5,6 +5,7 @@ import com.alcopoune.metertronik.data.remote.api.AuthApi
 import com.alcopoune.metertronik.data.remote.api.DailyDetailsApi
 import com.alcopoune.metertronik.data.remote.api.DashboardApi
 import com.alcopoune.metertronik.data.remote.api.ListDataApi
+import com.alcopoune.metertronik.data.remote.api.LogoutApi
 import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
 import com.alcopoune.metertronik.data.repository.AuthRepository
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
@@ -12,6 +13,7 @@ import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.ListDataRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
 import com.alcopoune.metertronik.data.util.AuthInterceptor
+import com.alcopoune.metertronik.data.util.AuthenticatorApi
 import com.google.gson.Gson
 import com.google.gson.GsonBuilder
 import dagger.Module
@@ -60,7 +62,8 @@ object AppModule {
     @Singleton
     @Named("api")
     fun provideApiOkHttpClient(
-        authInterceptor: AuthInterceptor
+        authInterceptor: AuthInterceptor,
+        authenticatorApi: AuthenticatorApi
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -69,6 +72,7 @@ object AppModule {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
+            .authenticator(authenticatorApi)
             .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
             .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
@@ -177,6 +181,23 @@ object AppModule {
 
     @Provides
     @Singleton
+    fun provideAuthInterceptor(
+        dataStorage: DataStorage
+    ): AuthInterceptor {
+        return AuthInterceptor(dataStorage)
+    }
+
+    @Provides
+    @Singleton
+    fun provideAuthenticatorApi(
+        authRepositoryProvider: javax.inject.Provider<AuthRepository>,
+        dataStorage: DataStorage
+    ): AuthenticatorApi {
+        return AuthenticatorApi(authRepositoryProvider, dataStorage)
+    }
+
+    @Provides
+    @Singleton
     fun provideAuthApi(
         @Named("auth") retrofit: Retrofit
     ): AuthApi {
@@ -185,19 +206,21 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideAuthInterceptor(
-        dataStorage: DataStorage,
-        gson: Gson
-    ): AuthInterceptor {
-        return AuthInterceptor(dataStorage, gson)
+    fun provideLogoutApi(
+        @Named("api") retrofit: Retrofit
+    ): LogoutApi {
+        // Use "api" retrofit which includes AuthInterceptor and AuthenticatorApi
+        // This ensures logout request includes Authorization header and can handle token refresh
+        return retrofit.create(LogoutApi::class.java)
     }
 
     @Provides
     @Singleton
     fun provideAuthRepository(
         api: AuthApi,
+        logoutApi: LogoutApi,
         dataStorage: DataStorage
     ): AuthRepository {
-        return AuthRepository(api, dataStorage)
+        return AuthRepository(api, logoutApi, dataStorage)
     }
 }
