@@ -13,7 +13,8 @@ fun LoginResponse.toDomain(): LoginResult {
         user = data.user.toDomain(),
         accessToken = data.accessToken,
         refreshToken = data.refreshToken,
-        message = message
+        userPaired = data.userPaired,
+        message = message,
     )
 }
 

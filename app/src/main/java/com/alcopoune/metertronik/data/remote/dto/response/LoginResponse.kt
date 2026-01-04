@@ -10,7 +10,8 @@ data class LoginResponse(
 data class LoginData(
     val user: UserDto,
     @SerializedName("access_token") val accessToken: String,
-    @SerializedName("refresh_token") val refreshToken: String
+    @SerializedName("refresh_token") val refreshToken: String,
+    @SerializedName("is_paired") val userPaired: Boolean,
 )
 
 data class UserDto(

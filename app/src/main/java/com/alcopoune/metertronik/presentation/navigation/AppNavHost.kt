@@ -19,6 +19,7 @@ import androidx.navigation.navArgument
 import com.alcopoune.metertronik.data.local.DataStorage
 import com.alcopoune.metertronik.presentation.screen.auth.login.LoginScreen
 import com.alcopoune.metertronik.presentation.screen.auth.login.LoginViewModel
+import com.alcopoune.metertronik.presentation.screen.auth.pairing.PairingScreen
 import com.alcopoune.metertronik.presentation.screen.auth.register.RegisterScreen
 import com.alcopoune.metertronik.presentation.screen.auth.verify.VerifyScreen
 import com.alcopoune.metertronik.presentation.screen.main.dashboard.DashboardScreen
@@ -42,8 +43,11 @@ fun AppNavHost(
     // Check token on startup
     LaunchedEffect(Unit) {
         val refreshToken = dataStorage.getRefreshToken()
+        val deviceId = dataStorage.getDeviceId()
         initialDestination = if (refreshToken.isNullOrBlank()) {
             Routes.Login.route
+        } else if (deviceId.isNullOrBlank()) {
+            Routes.Pairing.route
         } else {
             startDestination
         }
@@ -65,6 +69,10 @@ fun AppNavHost(
 
         composable(Routes.Register.route) {
             RegisterScreen(navController = navController)
+        }
+
+        composable(Routes.Pairing.route) {
+            PairingScreen(navController = navController)
         }
 
         composable(Routes.Verify.route) {

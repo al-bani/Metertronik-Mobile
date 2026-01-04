@@ -7,6 +7,7 @@ sealed class Routes(val route: String) {
     data object Login : Routes("login")
     data object Register : Routes("register")
     data object Verify : Routes("verify")
+    data object Pairing : Routes("pairing")
     data object Dashboard : Routes("dashboard")
     data object Detail : Routes("detail/{date}") {
         const val ARG_DATE: String = "date"

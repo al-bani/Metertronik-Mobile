@@ -16,6 +16,7 @@ import com.alcopoune.metertronik.data.local.DataStorage
 import com.alcopoune.metertronik.data.repository.AuthRepository
 import com.alcopoune.metertronik.presentation.navigation.AppNavHost
 import com.alcopoune.metertronik.presentation.navigation.Routes
+import com.alcopoune.metertronik.presentation.screen.auth.pairing.PairingScreen
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject

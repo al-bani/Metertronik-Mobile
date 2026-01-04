@@ -6,11 +6,14 @@ import com.alcopoune.metertronik.data.remote.api.DailyDetailsApi
 import com.alcopoune.metertronik.data.remote.api.DashboardApi
 import com.alcopoune.metertronik.data.remote.api.ListDataApi
 import com.alcopoune.metertronik.data.remote.api.LogoutApi
+import com.alcopoune.metertronik.data.remote.api.PairUserApi
+import com.alcopoune.metertronik.data.remote.api.PairingStatusApi
 import com.alcopoune.metertronik.data.remote.websocket.WebSocketService
 import com.alcopoune.metertronik.data.repository.AuthRepository
 import com.alcopoune.metertronik.data.repository.DailyDetailsRepository
 import com.alcopoune.metertronik.data.repository.DashboardRepository
 import com.alcopoune.metertronik.data.repository.ListDataRepository
+import com.alcopoune.metertronik.data.repository.PairingRepository
 import com.alcopoune.metertronik.data.repository.RealtimeRepository
 import com.alcopoune.metertronik.data.util.AuthInterceptor
 import com.alcopoune.metertronik.data.util.AuthenticatorApi
@@ -213,6 +216,32 @@ object AppModule {
         // This ensures logout request includes Authorization header and can handle token refresh
         return retrofit.create(LogoutApi::class.java)
     }
+
+    @Provides
+    @Singleton
+    fun providePairUserApi(
+        @Named("api") retrofit: Retrofit
+    ) : PairUserApi {
+        return retrofit.create(PairUserApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providePairingStatusApi(
+        @Named("api") retrofit: Retrofit
+    ): PairingStatusApi {
+        return retrofit.create(PairingStatusApi::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun providePairingRepository(
+        pairUserApi: PairUserApi,
+        pairingStatusApi: PairingStatusApi
+    ): PairingRepository {
+        return PairingRepository(pairUserApi, pairingStatusApi)
+    }
+
 
     @Provides
     @Singleton

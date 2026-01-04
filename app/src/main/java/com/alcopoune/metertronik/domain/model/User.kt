@@ -15,6 +15,7 @@ data class LoginResult(
     val user: UserData,
     val accessToken: String,
     val refreshToken: String,
+    val userPaired: Boolean,
     val message: String
 )
 

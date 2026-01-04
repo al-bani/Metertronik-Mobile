@@ -65,21 +65,32 @@ fun LoginScreen(
     LaunchedEffect(uiState) {
         if (uiState is LoginState.Success) {
             val result = (uiState as LoginState.Success).result
-            if (!result.user.verified) {
-                // User belum verified -> masuk ke Verify, kirim email dari userDto (domain model)
-                navController.currentBackStackEntry?.savedStateHandle?.apply {
-                    set("verify_email", result.user.email)
-                    set("verify_source", "login")
-                    set("verify_auto_resend", true)
+            when {
+                !result.user.verified -> {
+                    // User belum verified -> masuk ke Verify, kirim email dari userDto (domain model)
+                    navController.currentBackStackEntry?.savedStateHandle?.apply {
+                        set("verify_email", result.user.email)
+                        set("verify_source", "login")
+                        set("verify_auto_resend", true)
+                    }
+                    navController.navigate(Routes.Verify.route)
+                    // consume event biar gak loop navigate
+                    viewModel.resetState()
                 }
-                navController.navigate(Routes.Verify.route)
-                // consume event biar gak loop navigate
-                viewModel.resetState()
-            } else {
-                navController.navigate(Routes.Dashboard.route) {
-                    popUpTo(Routes.Login.route) { inclusive = true }
+
+                result.userPaired -> {
+                    navController.navigate(Routes.Dashboard.route) {
+                        popUpTo(Routes.Login.route) { inclusive = true }
+                    }
+                    viewModel.resetState()
                 }
-                viewModel.resetState()
+
+                else -> {
+                    navController.navigate(Routes.Pairing.route) {
+                        popUpTo(Routes.Login.route) { inclusive = true }
+                    }
+                    viewModel.resetState()
+                }
             }
         }
     }
