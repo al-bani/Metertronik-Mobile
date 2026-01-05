@@ -6,10 +6,13 @@ import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.MonthlyData
 
 fun DashboardResponse.toDomain(): DashboardSummaryData {
+    val wrapper = data ?: throw IllegalStateException("Data dashboard kosong (data=null)")
+    val month = wrapper.month ?: throw IllegalStateException("Data dashboard kosong (month=null)")
+
     return DashboardSummaryData(
-        daily = data.daily.map { it.toDomain() },
-        monthly = data.month.toDomain(),
-        monthlyList = data.monthly.map { it.toDomain() }
+        daily = wrapper.daily.orEmpty().map { it.toDomain() },
+        monthly = month.toDomain(),
+        monthlyList = wrapper.monthly.orEmpty().map { it.toDomain() }
     )
 }
 

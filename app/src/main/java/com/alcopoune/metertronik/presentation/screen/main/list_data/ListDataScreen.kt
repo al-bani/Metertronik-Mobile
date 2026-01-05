@@ -69,10 +69,12 @@ fun ListDataScreen(
     var showDateRangeSheet by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
+    val storedDeviceId by viewModel.deviceId.collectAsState(initial = null)
     val listState = rememberLazyListState()
 
-    LaunchedEffect(Unit) {
-        viewModel.load("device-001")
+    LaunchedEffect(storedDeviceId) {
+        val deviceId = storedDeviceId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
+        viewModel.load(deviceId)
     }
 
     LaunchedEffect(listState) {
@@ -114,7 +116,12 @@ fun ListDataScreen(
                             color = MaterialTheme.colorScheme.error
                         )
                         Spacer(modifier = Modifier.height(12.dp))
-                        Button(onClick = { viewModel.load("device-001") }) {
+                        Button(
+                            onClick = {
+                                val deviceId = storedDeviceId?.takeIf { it.isNotBlank() } ?: return@Button
+                                viewModel.load(deviceId)
+                            }
+                        ) {
                             Text("Try Again")
                         }
                     }

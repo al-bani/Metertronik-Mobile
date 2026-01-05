@@ -38,6 +38,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
@@ -50,6 +51,7 @@ import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
 import com.alcopoune.metertronik.presentation.components.chart.LineChartCustom
 import com.alcopoune.metertronik.presentation.components.chart.LinearProgressBar
 import com.alcopoune.metertronik.presentation.components.chart.PowerGaugeChart
+import com.alcopoune.metertronik.presentation.navigation.Routes
 import com.alcopoune.metertronik.presentation.navigation.MainBottomBar
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import com.alcopoune.metertronik.presentation.components.loading.RealtimePulse
@@ -58,6 +60,7 @@ import com.alcopoune.metertronik.utils.formatDailyLabel
 import com.alcopoune.metertronik.utils.formatMonthlyLabel
 import com.alcopoune.metertronik.utils.formatRupiah
 import com.alcopoune.metertronik.utils.progressToEndOfMonth
+import java.time.LocalDate
 import java.util.Locale
 
 @RequiresApi(Build.VERSION_CODES.O)
@@ -67,23 +70,43 @@ fun DashboardScreen(
     viewModel: DashboardViewModel = hiltViewModel()
 ) {
     val dashboardState by viewModel.uiState.collectAsState()
+    val storedDeviceId by viewModel.deviceId.collectAsState(initial = null)
+    val deviceId = storedDeviceId?.takeIf { it.isNotBlank() }
+    var hasTriggeredLoad by remember(deviceId) { mutableStateOf(false) }
 
-    LaunchedEffect(key1 = true) {
-        viewModel.connectWebSocket("device-001")
-        viewModel.loadDashboardData(
-            deviceId = "device-001",
-            date = "2025-12-11"
-        )
+    if (deviceId == null) {
+        // Awal-awal flow DataStore bisa null; jangan return kosong (bikin UI "kedip"/aneh).
+        // Tampilkan loading sampai deviceId kebaca, atau ganti ke ErrorScreen pairing kalau kamu mau.
+        Scaffold(
+            bottomBar = { MainBottomBar(navController = navController) }
+        ) { innerPadding ->
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+                    .padding(horizontal = 16.dp)
+            ) {
+                Spacer(modifier = Modifier.height(16.dp))
+                ShimmerDashboard()
+            }
+        }
+        return
     }
 
-    if (dashboardState is DashboardState.Error) {
+    LaunchedEffect(deviceId) {
+        val today = LocalDate.now().toString() // yyyy-MM-dd
+        viewModel.disconnectWebSocket()
+        viewModel.loadDashboardData(deviceId = deviceId, date = today)
+        viewModel.connectWebSocket(deviceId)
+        hasTriggeredLoad = true
+    }
+
+    if (hasTriggeredLoad && dashboardState is DashboardState.Error) {
         ErrorScreen(
             errorMessage = (dashboardState as DashboardState.Error).message,
             onRetry = {
-                viewModel.loadDashboardData(
-                    deviceId = "device-001",
-                    date = "2025-12-11"
-                )
+                val today = LocalDate.now().toString() // yyyy-MM-dd
+                viewModel.loadDashboardData(deviceId = deviceId, date = today)
             },
             onBack = {
                 navController.popBackStack()
@@ -110,6 +133,36 @@ fun DashboardScreen(
             when (dashboardState) {
                 is DashboardState.Loading -> {
                     ShimmerDashboard()
+                }
+
+                is DashboardState.NoData -> {
+                    PrimaryCard(modifier = Modifier.fillMaxWidth()) {
+                        Text(
+                            text = (dashboardState as DashboardState.NoData).message,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.scrim,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "Real Time Data",
+                            style = MaterialTheme.typography.titleLarge
+                        )
+
+                        if (dashboardState.isRealtimeConnected) {
+                            LoadingDots()
+                        }
+                    }
+
+                    RealtimeCard(realtimeData = dashboardState.realtimeData)
+                    PowerGaugeCard(realtimeData = dashboardState.realtimeData)
                 }
 
                 is DashboardState.Success -> {
@@ -142,6 +195,10 @@ fun DashboardScreen(
                     EfficiencyElectric(dashboardState.realtimeData?.powerFactor?.toFloat() ?: 0f)
 
                     Spacer(modifier = Modifier.height(16.dp))
+                }
+
+                is DashboardState.Error -> {
+                    ShimmerDashboard()
                 }
 
                 else -> {}

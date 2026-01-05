@@ -10,6 +10,12 @@ sealed class DashboardState {
         val isRealtimeConnected: Boolean = false
     ) : DashboardState()
 
+    data class NoData(
+        val message: String = "Data will Displaying after 1 day",
+        val realtimeData: ElectricityRealtime? = null,
+        val isRealtimeConnected: Boolean = false
+    ) : DashboardState()
+
     data class Success(
         val data: DashboardSummaryData,
         val realtimeData: ElectricityRealtime? = null,
@@ -27,6 +33,7 @@ sealed class DashboardState {
 val DashboardState.realtimeData: ElectricityRealtime?
     get() = when (this) {
         is DashboardState.Loading -> this.realtimeData
+        is DashboardState.NoData -> this.realtimeData
         is DashboardState.Success -> this.realtimeData
         is DashboardState.Error -> this.realtimeData
     }
@@ -34,6 +41,7 @@ val DashboardState.realtimeData: ElectricityRealtime?
 val DashboardState.isRealtimeConnected: Boolean
     get() = when (this) {
         is DashboardState.Loading -> this.isRealtimeConnected
+        is DashboardState.NoData -> this.isRealtimeConnected
         is DashboardState.Success -> this.isRealtimeConnected
         is DashboardState.Error -> this.isRealtimeConnected
     }

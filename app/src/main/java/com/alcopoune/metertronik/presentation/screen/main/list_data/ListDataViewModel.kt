@@ -3,9 +3,11 @@ package com.alcopoune.metertronik.presentation.screen.main.list_data
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.alcopoune.metertronik.data.local.DataStorage
 import com.alcopoune.metertronik.data.repository.ListDataRepository
 import com.alcopoune.metertronik.domain.model.DailyData
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -15,13 +17,16 @@ import javax.inject.Inject
 
 @HiltViewModel
 class ListDataViewModel @Inject constructor(
-    private val repository: ListDataRepository
+    private val repository: ListDataRepository,
+    private val dataStorage: DataStorage
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ListDataState>(ListDataState.Loading)
     val uiState: StateFlow<ListDataState> = _uiState
 
-    private var deviceId: String? = null
+    val deviceId: Flow<String?> = dataStorage.deviceId
+
+    private var currentDeviceId: String? = null
     private var lastDate: String? = null
     private var hasMore: Boolean = true
     private var isLoadingPage: Boolean = false
@@ -36,8 +41,8 @@ class ListDataViewModel @Inject constructor(
     private var sortOrder: SortOrder = SortOrder.DESC
 
     fun load(deviceId: String) {
-        if (this.deviceId == deviceId && items.isNotEmpty()) return
-        this.deviceId = deviceId
+        if (this.currentDeviceId == deviceId && items.isNotEmpty()) return
+        this.currentDeviceId = deviceId
         isRangeMode = false
         resetPagination()
         fetchPage(reset = true)
@@ -56,7 +61,7 @@ class ListDataViewModel @Inject constructor(
     }
 
     private fun fetchPage(reset: Boolean) {
-        val currentDeviceId = deviceId ?: return
+        val currentDeviceId = currentDeviceId ?: return
         viewModelScope.launch {
             isLoadingPage = true
             if (!reset) {
@@ -117,7 +122,7 @@ class ListDataViewModel @Inject constructor(
     }
 
     fun applyDateRange(start: LocalDate?, end: LocalDate?) {
-        val currentDeviceId = deviceId ?: return
+        val currentDeviceId = currentDeviceId ?: return
 
         if (start == null || end == null) {
             isRangeMode = false

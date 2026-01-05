@@ -10,6 +10,6 @@ interface DashboardApi {
     suspend fun getDashboard(
         @Path("deviceId") deviceId: String,
         @Query("date") date: String
-    ): DashboardResponse
+    ): DashboardResponse?
 }
 

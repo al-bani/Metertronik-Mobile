@@ -38,6 +38,7 @@ import com.alcopoune.metertronik.domain.model.HourlyData
 import com.alcopoune.metertronik.presentation.components.card.MetricCard
 import com.alcopoune.metertronik.presentation.components.card.PrimaryCard
 import com.alcopoune.metertronik.presentation.components.loading.ShimmerDailyDetail
+import com.alcopoune.metertronik.presentation.navigation.Routes
 import com.alcopoune.metertronik.presentation.screen.error.ErrorScreen
 import com.alcopoune.metertronik.utils.DecimalFormater
 import com.alcopoune.metertronik.utils.formatDate
@@ -53,10 +54,25 @@ fun DetailsScreen(
     viewModel: DailyDetailViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsState()
+    val storedDeviceId by viewModel.deviceId.collectAsState(initial = null)
 
-    LaunchedEffect(Unit) {
+    if (storedDeviceId.isNullOrBlank()) {
+        ErrorScreen(
+            errorMessage = "Device belum dipairing. Silakan pairing terlebih dahulu.",
+            onRetry = {
+                navController.navigate(Routes.Pairing.route) {
+                    popUpTo(Routes.Dashboard.route) { inclusive = false }
+                }
+            },
+            onBack = { navController.popBackStack() }
+        )
+        return
+    }
+
+    LaunchedEffect(storedDeviceId, date) {
+        val deviceId = storedDeviceId?.takeIf { it.isNotBlank() } ?: return@LaunchedEffect
         viewModel.load(
-            deviceId = "device-001",
+            deviceId = deviceId,
             date = date
         )
     }
@@ -66,8 +82,9 @@ fun DetailsScreen(
         ErrorScreen(
             errorMessage = (state as DailyDetailState.Error).message,
             onRetry = {
+                val deviceId = storedDeviceId?.takeIf { it.isNotBlank() } ?: return@ErrorScreen
                 viewModel.load(
-                    deviceId = "device-001",
+                    deviceId = deviceId,
                     date = date
                 )
             },
