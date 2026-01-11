@@ -29,6 +29,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -37,10 +38,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavHostController
 import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
@@ -73,6 +77,7 @@ fun DashboardScreen(
     val storedDeviceId by viewModel.deviceId.collectAsState(initial = null)
     val deviceId = storedDeviceId?.takeIf { it.isNotBlank() }
     var hasTriggeredLoad by remember(deviceId) { mutableStateOf(false) }
+    val lifecycleOwner = LocalLifecycleOwner.current
 
     if (deviceId == null) {
         // Awal-awal flow DataStore bisa null; jangan return kosong (bikin UI "kedip"/aneh).
@@ -93,11 +98,27 @@ fun DashboardScreen(
         return
     }
 
+    // WebSocket connect/disconnect mengikuti lifecycle screen:
+    // - ON_START: connect
+    // - ON_STOP: disconnect
+    DisposableEffect(lifecycleOwner, deviceId) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.connectWebSocket(deviceId)
+                Lifecycle.Event.ON_STOP -> viewModel.disconnectWebSocket()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.disconnectWebSocket()
+        }
+    }
+
     LaunchedEffect(deviceId) {
         val today = LocalDate.now().toString() // yyyy-MM-dd
-        viewModel.disconnectWebSocket()
         viewModel.loadDashboardData(deviceId = deviceId, date = today)
-        viewModel.connectWebSocket(deviceId)
         hasTriggeredLoad = true
     }
 
@@ -163,6 +184,7 @@ fun DashboardScreen(
 
                     RealtimeCard(realtimeData = dashboardState.realtimeData)
                     PowerGaugeCard(realtimeData = dashboardState.realtimeData)
+                    EfficiencyElectric(dashboardState.realtimeData?.powerFactor?.toFloat() ?: 0f)
                 }
 
                 is DashboardState.Success -> {

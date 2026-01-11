@@ -16,7 +16,6 @@ import com.alcopoune.metertronik.data.local.DataStorage
 import com.alcopoune.metertronik.data.repository.AuthRepository
 import com.alcopoune.metertronik.presentation.navigation.AppNavHost
 import com.alcopoune.metertronik.presentation.navigation.Routes
-import com.alcopoune.metertronik.presentation.screen.auth.pairing.PairingScreen
 import com.alcopoune.metertronik.presentation.theme.MetertronikTheme
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -55,12 +54,13 @@ class MainActivity : ComponentActivity() {
                     if (refreshToken.isNullOrBlank()) {
                         startDestination = Routes.Login.route
                     } else {
-                        val success = authRepository.refreshToken()
-                        startDestination = if (success) {
-                            defaultDestination
-                        } else {
-                            Routes.Login.route
-                        }
+                        // Jangan paksa refresh token saat startup.
+                        // Refresh dilakukan otomatis via OkHttp Authenticator saat ada 401.
+                        // Ini mencegah user "terlogout" saat app dibuka dalam kondisi offline/server down.
+                        startDestination = defaultDestination
+
+                        // Best-effort: coba refresh di background, tapi jangan mengubah navigasi.
+                        runCatching { authRepository.refreshToken() }
                     }
                 }
 

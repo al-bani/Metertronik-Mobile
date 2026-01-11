@@ -9,6 +9,7 @@ import com.alcopoune.metertronik.data.repository.RealtimeRepository
 import com.alcopoune.metertronik.domain.model.DashboardSummaryData
 import com.alcopoune.metertronik.domain.model.ElectricityRealtime
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -28,6 +29,7 @@ class DashboardViewModel @Inject constructor(
     val uiState: StateFlow<DashboardState> = _uiState
 
     val deviceId: Flow<String?> = dataStorage.deviceId
+    private var realtimeJob: Job? = null
 
     private fun updateState(
         dashboardData: DashboardSummaryData? = null,
@@ -62,7 +64,11 @@ class DashboardViewModel @Inject constructor(
     fun connectWebSocket(deviceId: String) {
         Log.d("DashboardVM", "Connecting WebSocket: $deviceId")
 
-        realtimeRepository.getRealtimeData(deviceId)
+        // Pastikan tidak ada collector lama yang masih jalan (hindari dobel connect/collect).
+        realtimeJob?.cancel()
+        realtimeRepository.disconnect()
+
+        realtimeJob = realtimeRepository.getRealtimeData(deviceId)
             .onEach { data ->
                 Log.d("DashboardVM", "Realtime received: $data")
                 val currentState = _uiState.value
@@ -87,12 +93,13 @@ class DashboardViewModel @Inject constructor(
                     errorMessage = (currentState as? DashboardState.Error)?.message,
                     noDataMessage = (currentState as? DashboardState.NoData)?.message
                 )
-            }
-            .launchIn(viewModelScope)
+            }.launchIn(viewModelScope)
     }
 
     fun disconnectWebSocket() {
         Log.d("DashboardVM", "Disconnect WebSocket")
+        realtimeJob?.cancel()
+        realtimeJob = null
         realtimeRepository.disconnect()
         val currentState = _uiState.value
         updateState(
@@ -176,8 +183,8 @@ class DashboardViewModel @Inject constructor(
         }
     }
 
-    override fun onCleared() {
-        super.onCleared()
-        disconnectWebSocket()
-    }
+//    override fun onCleared() {
+//        super.onCleared()
+//        disconnectWebSocket()
+//    }
 }

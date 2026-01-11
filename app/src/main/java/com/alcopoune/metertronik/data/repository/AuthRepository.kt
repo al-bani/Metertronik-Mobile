@@ -18,6 +18,8 @@ import com.alcopoune.metertronik.data.remote.dto.response.VerifyOtpResponse
 import com.alcopoune.metertronik.data.util.ErrorHandler
 import com.alcopoune.metertronik.domain.model.LoginResult
 import com.alcopoune.metertronik.domain.model.RegisterResult
+import retrofit2.HttpException
+import java.io.IOException
 import javax.inject.Inject
 
 class AuthRepository @Inject constructor(
@@ -146,10 +148,19 @@ class AuthRepository @Inject constructor(
 
             Log.d(tag, "refreshToken() - success, tokens saved")
             true
+        } catch (e: HttpException) {
+            Log.e(tag, "Error during refresh token (http ${e.code()})", e)
+            // Hapus token hanya jika refresh token dianggap tidak valid / tidak berizin
+            if (e.code() == 401 || e.code() == 403) {
+                dataStorage.clearAuthTokens()
+            }
+            false
+        } catch (e: IOException) {
+            // Masalah jaringan: jangan hapus token, biar sesi tidak "hilang" saat offline/server down
+            Log.e(tag, "Error during refresh token (network)", e)
+            false
         } catch (e: Exception) {
             Log.e(tag, "Error during refresh token", e)
-            // If refresh fails, clear tokens
-            dataStorage.clearTokens()
             false
         }
     }

@@ -195,7 +195,7 @@ fun ListDataScreen(
                                     imageVector = Icons.Filled.ElectricBolt,
                                     contentDescription = null,
                                     tint = MaterialTheme.colorScheme.onTertiary
-                                )
+                                )   
 
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(

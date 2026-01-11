@@ -6,19 +6,19 @@ import com.alcopoune.metertronik.data.repository.AuthRepository
 import kotlinx.coroutines.runBlocking
 import okhttp3.Authenticator
 import okhttp3.Request
-import okhttp3.Response
+import okhttp3.Response                                                                                                 
 import okhttp3.Route
 import javax.inject.Inject
 import javax.inject.Provider
 
 /**
  * AuthenticatorApi menggunakan Provider<AuthRepository> untuk menghindari dependency cycle.
- * AuthRepository membutuhkan LogoutApi yang dibuat dari @Named("api") Retrofit,
+ * AuthRepository membutuhkan LogoutApi yang dibuat dari @Named("api") Retrofit,                                                                                            
  * yang membutuhkan @Named("api") OkHttpClient yang membutuhkan AuthenticatorApi.
- * Dengan menggunakan Provider, dependency di-resolve secara lazy.
+ * Dengan menggunakan Provider, dependency di-resolve secara lazy.                           
  */
 class AuthenticatorApi @Inject constructor(
-    private val authRepositoryProvider: Provider<AuthRepository>,
+    private val authRepositoryProvider: Provider<AuthRepository>,                                                                                                           
     private val dataStorage: DataStorage
 ) : Authenticator {
 
@@ -27,7 +27,8 @@ class AuthenticatorApi @Inject constructor(
 
         // ❗ Hindari infinite loop
         if (responseCount(response) >= 2) {
-                dataStorage.clearTokensBlocking()
+            // Clear auth tokens saja (jangan hapus deviceId), lalu stop retry.
+            dataStorage.clearAuthTokensBlocking()
             return null
         }
 
@@ -61,7 +62,6 @@ class AuthenticatorApi @Inject constructor(
             }
 
             if (!success) {
-                    dataStorage.clearTokensBlocking()
                 return null
             }
 

@@ -57,4 +57,8 @@ class LoginViewModel @Inject constructor(
     fun resetState() {
         _uiState.value = LoginState.Idle
     }
+
+    suspend fun getStoredDeviceId(): String? {
+        return dataStorage.getDeviceId()
+    }
 }

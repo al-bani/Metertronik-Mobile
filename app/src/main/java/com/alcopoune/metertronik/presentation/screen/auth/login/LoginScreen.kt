@@ -79,8 +79,18 @@ fun LoginScreen(
                 }
 
                 result.userPaired -> {
-                    navController.navigate(Routes.Dashboard.route) {
-                        popUpTo(Routes.Login.route) { inclusive = true }
+                    // Backend bilang user sudah paired, tapi app tetap butuh deviceId lokal
+                    // untuk hit endpoint Dashboard (/monthly/{deviceId}) + WebSocket.
+                    val storedDeviceId = viewModel.getStoredDeviceId()
+                    if (!storedDeviceId.isNullOrBlank()) {
+                        navController.navigate(Routes.Dashboard.route) {
+                            popUpTo(Routes.Login.route) { inclusive = true }
+                        }
+                    } else {
+                        // Flow "restore": user sudah paired di server, tapi deviceId lokal belum tersimpan
+                        navController.navigate(Routes.Pairing.route) {
+                            popUpTo(Routes.Login.route) { inclusive = true }
+                        }
                     }
                     viewModel.resetState()
                 }

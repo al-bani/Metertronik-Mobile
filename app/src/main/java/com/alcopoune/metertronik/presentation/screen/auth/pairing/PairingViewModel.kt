@@ -243,7 +243,22 @@ class PairingViewModel @Inject constructor(
             )
 
             val pairingResult = pairingRepository.pairUser(deviceId)
+            // Jika user/device sudah pernah dipair (server mengembalikan isPaired=true),
+            // bisa jadi pairing_token tidak dikirim lagi. Dalam kasus ini, kita cukup
+            // anggap pairing sudah valid dan lanjutkan menyimpan deviceId lokal.
             val token = pairingResult.pairingToken
+            if (pairingResult.isPaired && token.isNullOrBlank()) {
+                updateDeviceStatus(
+                    address = address,
+                    status = PairingStatus.CONNECTED,
+                    message = "Connected",
+                    isPaired = true,
+                    deviceId = deviceId
+                )
+                return
+            }
+
+            val tokenNonNull = token
                 ?: throw IllegalStateException("pairing_token kosong dari server")
 
             updateDeviceStatus(
@@ -252,7 +267,7 @@ class PairingViewModel @Inject constructor(
                 message = "Mengirim token ke perangkat...",
                 deviceId = deviceId
             )
-            writePairingToken(connection, token, negotiatedMtu)
+            writePairingToken(connection, tokenNonNull, negotiatedMtu)
 
             updateDeviceStatus(
                 address = address,

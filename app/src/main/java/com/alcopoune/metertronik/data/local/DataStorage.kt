@@ -86,6 +86,24 @@ class DataStorage @Inject constructor(
         }
     }
 
+    /**
+     * Hanya hapus data autentikasi (access/refresh/userId).
+     * DeviceId dipertahankan supaya user tidak perlu pairing ulang saat token kadaluarsa.
+     */
+    suspend fun clearAuthTokens() {
+        dataStore.edit { preferences ->
+            preferences.remove(ACCESS_TOKEN_KEY)
+            preferences.remove(REFRESH_TOKEN_KEY)
+            preferences.remove(USER_ID_KEY)
+        }
+    }
+
+    fun clearAuthTokensBlocking() {
+        runBlocking {
+            clearAuthTokens()
+        }
+    }
+
     suspend fun clearTokens() {
         dataStore.edit { preferences ->
             preferences.remove(ACCESS_TOKEN_KEY)
